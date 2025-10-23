@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Search, Plus, BookOpen, Shield, Users, TrendingUp, Star, Clock, MapPin } from "lucide-react";
 
 export default function Home() {
@@ -113,9 +114,11 @@ export default function Home() {
               <a href="#" className="text-gray-600 hover:text-blue-600 font-medium transition">About</a>
             </nav>
             <div className="flex items-center space-x-3">
-              <button className="text-gray-700 hover:text-gray-900 px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition font-medium">
-                Login
-              </button>
+              <Link href="/login">
+                <button className="text-gray-700 hover:text-gray-900 px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition font-medium">
+                  Login
+                </button>
+              </Link>
               <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md flex items-center font-medium">
                 <Plus className="h-4 w-4 mr-2" />
                 Sell Item
