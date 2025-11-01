@@ -24,7 +24,7 @@ export default function EditListingPage({ params }: { params: Promise<{ id: stri
     categoryId: '',
     location: '',
     condition: 'Good' as 'New' | 'Like New' | 'Good' | 'Fair' | 'Poor',
-    status: 'available' as 'available' | 'sold' | 'reserved',
+    status: 'active' as 'active' | 'sold' | 'deleted',
   });
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -140,7 +140,7 @@ export default function EditListingPage({ params }: { params: Promise<{ id: stri
   }
 
   // Check if user is the owner
-  if (listing.seller_id !== user.id) {
+  if (listing.user_id !== user.id) {
     return (
       <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white flex items-center justify-center">
         <div className="text-center">
@@ -251,9 +251,9 @@ export default function EditListingPage({ params }: { params: Promise<{ id: stri
                 onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
                 required
               >
-                <option value="available">Available</option>
-                <option value="reserved">Reserved</option>
+                <option value="active">Active</option>
                 <option value="sold">Sold</option>
+                <option value="deleted">Removed</option>
               </select>
             </div>
 

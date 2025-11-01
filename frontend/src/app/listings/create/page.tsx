@@ -124,8 +124,11 @@ export default function CreateListingPage() {
         return;
       }
 
-      if (data) {
-        router.push(`/listings/${data.listing_id}`);
+      if (data && data.listing_id) {
+        const listingIdParam = typeof data.listing_id === 'number'
+          ? data.listing_id.toString()
+          : (data.listing_id as string);
+        router.push(`/listings/${listingIdParam}`);
       }
     } catch (error) {
       console.error('Error creating listing:', error);

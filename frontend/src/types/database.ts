@@ -17,14 +17,14 @@ export interface Category {
 
 export interface Listing {
   listing_id: number;
-  seller_id: string;
+  user_id: string;
   categories_id: number;
   title: string;
   description: string;
   price: number;
   location: string;
   condition: 'New' | 'Like New' | 'Good' | 'Fair' | 'Poor';
-  status: 'available' | 'sold' | 'reserved';
+  status: 'active' | 'sold' | 'deleted';
   created_at: string;
   updated_at: string;
   // Joined fields

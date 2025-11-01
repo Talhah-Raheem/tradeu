@@ -18,6 +18,18 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
   const [loading, setLoading] = useState(true);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
 
+  const statusLabels: Record<Listing['status'], string> = {
+    active: 'Available',
+    sold: 'Sold',
+    deleted: 'Removed',
+  };
+
+  const statusClasses: Record<Listing['status'], string> = {
+    active: 'text-green-600 bg-green-50',
+    sold: 'text-gray-600 bg-gray-50',
+    deleted: 'text-red-600 bg-red-50',
+  };
+
   useEffect(() => {
     loadListing();
   }, [id]);
@@ -47,7 +59,7 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
       router.push('/login');
       return;
     }
-    router.push(`/messages?listing=${id}&seller=${listing?.seller_id}`);
+    router.push(`/messages?listing=${id}&seller=${listing?.user_id}`);
   };
 
   const handleBuyNow = () => {
@@ -87,7 +99,7 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
     );
   }
 
-  const isOwner = user?.id === listing.seller_id;
+  const isOwner = user?.id === listing.user_id;
   const images = listing.images || [];
   const currentImage = images[selectedImageIndex] || null;
 
@@ -148,11 +160,9 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
                   {listing.category?.category_name}
                 </span>
                 <span className={`text-sm font-semibold px-3 py-1 rounded-full ${
-                  listing.status === 'available' ? 'text-green-600 bg-green-50' :
-                  listing.status === 'sold' ? 'text-gray-600 bg-gray-50' :
-                  'text-yellow-600 bg-yellow-50'
+                  statusClasses[listing.status] ?? 'text-gray-600 bg-gray-50'
                 }`}>
-                  {listing.status.charAt(0).toUpperCase() + listing.status.slice(1)}
+                  {statusLabels[listing.status] ?? listing.status}
                 </span>
               </div>
 
@@ -217,7 +227,7 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
                     <span>Delete Listing</span>
                   </Button>
                 </>
-              ) : listing.status === 'available' ? (
+              ) : listing.status === 'active' ? (
                 <>
                   <Button
                     variant="primary"

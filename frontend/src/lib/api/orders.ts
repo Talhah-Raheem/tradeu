@@ -12,21 +12,21 @@ export async function createOrder(listingId: number) {
     // Get listing details
     const { data: listing, error: listingError } = await supabase
       .from('listings')
-      .select('*, seller:users!listings_seller_id_fkey(user_id)')
+      .select('*, seller:users!listings_user_id_fkey(user_id)')
       .eq('listing_id', listingId)
       .single();
 
     if (listingError) throw listingError;
     if (!listing) throw new Error('Listing not found');
-    if (listing.status !== 'available') throw new Error('Listing is not available');
-    if (listing.seller_id === user.id) throw new Error('Cannot buy your own listing');
+    if (listing.status !== 'active') throw new Error('Listing is not available');
+    if (listing.user_id === user.id) throw new Error('Cannot buy your own listing');
 
     // Create order
     const { data: order, error: orderError } = await supabase
       .from('orders')
       .insert({
         buyer_id: user.id,
-        seller_id: listing.seller_id,
+        seller_id: listing.user_id,
         listing_id: listingId,
         total_price: listing.price,
         status: 'completed', // For MVP, all orders are immediately completed

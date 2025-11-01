@@ -31,7 +31,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     const [userResult, statsResult, listingsResult] = await Promise.all([
       getUserProfile(id),
       getUserStats(id),
-      getListingsBySeller(id, activeTab === 'active' ? 'available' : 'sold'),
+      getListingsBySeller(id, activeTab === 'active' ? 'active' : 'sold'),
     ]);
 
     if (userResult.data) {

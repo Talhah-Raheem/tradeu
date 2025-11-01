@@ -8,7 +8,7 @@ export interface CreateListingData {
   categoryId: number;
   location: string;
   condition: 'New' | 'Like New' | 'Good' | 'Fair' | 'Poor';
-  status?: 'available' | 'sold' | 'reserved';
+  status?: Listing['status'];
   images?: File[];
 }
 
@@ -19,13 +19,13 @@ export interface UpdateListingData {
   categoryId?: number;
   location?: string;
   condition?: 'New' | 'Like New' | 'Good' | 'Fair' | 'Poor';
-  status?: 'available' | 'sold' | 'reserved';
+  status?: Listing['status'];
 }
 
 // Fetch all listings with seller info and images
 export async function getListings(filters?: {
   categoryId?: number;
-  status?: string;
+  status?: Listing['status'];
   search?: string;
   limit?: number;
 }) {
@@ -34,7 +34,7 @@ export async function getListings(filters?: {
       .from('listings')
       .select(`
         *,
-        seller:users!listings_seller_id_fkey(user_id, first_name, last_name, university, profile_image_url),
+        seller:users!listings_user_id_fkey(user_id, first_name, last_name, university, profile_image_url),
         category:categories!listings_categories_id_fkey(category_id, category_name),
         images:listing_images(image_id, image_url, display_order)
       `)
@@ -48,8 +48,8 @@ export async function getListings(filters?: {
     if (filters?.status) {
       query = query.eq('status', filters.status);
     } else {
-      // Default to only available listings
-      query = query.eq('status', 'available');
+      // Default to only active listings
+      query = query.eq('status', 'active');
     }
 
     if (filters?.search) {
@@ -84,7 +84,7 @@ export async function getListingById(listingId: number) {
       .from('listings')
       .select(`
         *,
-        seller:users!listings_seller_id_fkey(user_id, first_name, last_name, university, profile_image_url),
+        seller:users!listings_user_id_fkey(user_id, first_name, last_name, university, profile_image_url),
         category:categories!listings_categories_id_fkey(category_id, category_name),
         images:listing_images(image_id, image_url, display_order)
       `)
@@ -107,7 +107,7 @@ export async function getListingById(listingId: number) {
 }
 
 // Get listings by seller ID
-export async function getListingsBySeller(sellerId: string, status?: 'available' | 'sold' | 'reserved') {
+export async function getListingsBySeller(sellerId: string, status?: Listing['status']) {
   try {
     let query = supabase
       .from('listings')
@@ -116,7 +116,7 @@ export async function getListingsBySeller(sellerId: string, status?: 'available'
         category:categories!listings_categories_id_fkey(category_id, category_name),
         images:listing_images(image_id, image_url, display_order)
       `)
-      .eq('seller_id', sellerId)
+      .eq('user_id', sellerId)
       .order('created_at', { ascending: false });
 
     if (status) {
@@ -147,14 +147,14 @@ export async function createListing(listingData: CreateListingData) {
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
-    const { images, status = 'available', categoryId, ...listingFields } = listingData;
+    const { images, status = 'active', categoryId, ...listingFields } = listingData;
 
     // Insert listing
     const { data: listing, error: listingError } = await supabase
       .from('listings')
       .insert({
         ...listingFields,
-        seller_id: user.id,
+        user_id: user.id,
         categories_id: categoryId,
         status,
       })
@@ -186,11 +186,11 @@ export async function updateListing(listingId: number, updates: UpdateListingDat
     // Verify ownership
     const { data: listing } = await supabase
       .from('listings')
-      .select('seller_id')
+      .select('user_id')
       .eq('listing_id', listingId)
       .single();
 
-    if (listing?.seller_id !== user.id) {
+    if (listing?.user_id !== user.id) {
       throw new Error('Not authorized to update this listing');
     }
 
@@ -227,11 +227,11 @@ export async function deleteListing(listingId: number) {
     // Verify ownership
     const { data: listing } = await supabase
       .from('listings')
-      .select('seller_id')
+      .select('user_id')
       .eq('listing_id', listingId)
       .single();
 
-    if (listing?.seller_id !== user.id) {
+    if (listing?.user_id !== user.id) {
       throw new Error('Not authorized to delete this listing');
     }
 

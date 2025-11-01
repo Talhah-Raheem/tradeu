@@ -36,9 +36,9 @@ export default function CheckoutPage({ params }: { params: Promise<{ listingId: 
     setLoading(true);
     const { data } = await getListingById(parseInt(listingId));
     if (data) {
-      if (data.seller_id === user?.id) {
+      if (data.user_id === user?.id) {
         setError('You cannot buy your own listing');
-      } else if (data.status !== 'available') {
+      } else if (data.status !== 'active') {
         setError('This item is no longer available');
       }
       setListing(data);

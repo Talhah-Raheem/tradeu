@@ -26,12 +26,12 @@ export async function getUserStats(userId: string) {
       supabase
         .from('listings')
         .select('listing_id', { count: 'exact', head: true })
-        .eq('seller_id', userId)
-        .eq('status', 'available'),
+        .eq('user_id', userId)
+        .eq('status', 'active'),
       supabase
         .from('listings')
         .select('listing_id', { count: 'exact', head: true })
-        .eq('seller_id', userId)
+        .eq('user_id', userId)
         .eq('status', 'sold'),
     ]);
 
