@@ -277,14 +277,16 @@ export default function Home() {
                       <p className="text-gray-600 text-sm line-clamp-2">{listing.description}</p>
 
                       <div className="pt-3 border-t border-gray-100">
-                        <div className="flex justify-between items-center mb-2">
-                          <span className="text-2xl font-bold text-blue-600">${listing.price}</span>
-                          <div className="flex items-center text-yellow-500">
-                            <Star className="h-4 w-4 fill-current" />
-                            <span className="text-sm ml-1 text-gray-600">
-                              {listing.seller?.first_name || 'Seller'}
-                            </span>
-                          </div>
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-2xl font-bold text-blue-600">${listing.price}</span>
+                        <div className="flex items-center text-yellow-500">
+                          <Star className="h-4 w-4 fill-current" />
+                          <span className="text-sm ml-1 text-gray-600">
+                            {listing.seller?.first_name ||
+                              listing.seller?.email?.split('@')[0] ||
+                              'Seller'}
+                          </span>
+                        </div>
                         </div>
                         <div className="flex items-center justify-between text-xs text-gray-500">
                           <div className="flex items-center">

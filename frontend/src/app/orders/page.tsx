@@ -118,7 +118,7 @@ export default function OrdersPage() {
                           <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
                             <div className="flex items-center">
                               <User className="h-4 w-4 mr-1" />
-                              Sold by {order.seller?.first_name} {order.seller?.last_name}
+                              Sold by {order.seller?.first_name || order.seller?.email?.split('@')[0] || 'Seller'}
                             </div>
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 mr-1" />

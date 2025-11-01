@@ -165,7 +165,9 @@ export default function MessagesPage() {
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="font-semibold text-gray-900">
-                            {otherUser?.first_name} {otherUser?.last_name}
+                            {otherUser?.first_name ||
+                              otherUser?.email?.split('@')[0] ||
+                              'User'}
                           </div>
                           <div className="text-sm text-gray-600 truncate">{conv.listing?.title}</div>
                           <div className="text-xs text-gray-500 truncate mt-1">{conv.message_text}</div>
@@ -185,8 +187,12 @@ export default function MessagesPage() {
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <div className="font-semibold text-gray-900">
                       {selectedConvData.sender_id === user.id
-                        ? `${selectedConvData.receiver?.first_name} ${selectedConvData.receiver?.last_name}`
-                        : `${selectedConvData.sender?.first_name} ${selectedConvData.sender?.last_name}`}
+                        ? selectedConvData.receiver?.first_name ||
+                          selectedConvData.receiver?.email?.split('@')[0] ||
+                          'User'
+                        : selectedConvData.sender?.first_name ||
+                          selectedConvData.sender?.email?.split('@')[0] ||
+                          'User'}
                     </div>
                     <Link href={`/listings/${selectedConversation.listingId}`}>
                       <div className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer">

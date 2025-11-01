@@ -77,9 +77,9 @@ export async function getUserConversations() {
       .from('messages')
       .select(`
         *,
-        sender:users!messages_sender_id_fkey(user_id, first_name, last_name, profile_image_url),
-        receiver:users!messages_receiver_id_fkey(user_id, first_name, last_name, profile_image_url),
-        listing:listings(listing_id, title, images:listing_images(image_url, display_order))
+        sender:users!messages_sender_id_fkey(user_id, email),
+        receiver:users!messages_receiver_id_fkey(user_id, email),
+        listing:listings(listing_id, title, images:listing_images(image_url))
       `)
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
       .order('created_at', { ascending: false });
@@ -101,16 +101,7 @@ export async function getUserConversations() {
 
     const conversations = Array.from(conversationsMap.values());
 
-    // Sort images by display_order
-    const conversationsWithSortedImages = conversations.map(conv => ({
-      ...conv,
-      listing: {
-        ...conv.listing,
-        images: conv.listing?.images?.sort((a, b) => a.display_order - b.display_order) || []
-      }
-    }));
-
-    return { data: conversationsWithSortedImages as Message[], error: null };
+    return { data: conversations as Message[], error: null };
   } catch (error) {
     console.error('Error fetching user conversations:', error);
     return { data: null, error };

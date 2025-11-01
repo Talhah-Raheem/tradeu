@@ -12,7 +12,7 @@ export async function createOrder(listingId: number) {
     // Get listing details
     const { data: listing, error: listingError } = await supabase
       .from('listings')
-      .select('*, seller:users!listings_user_id_fkey(user_id)')
+      .select('*, seller:users!listings_user_id_fkey(user_id, email)')
       .eq('listing_id', listingId)
       .single();
 
@@ -53,24 +53,15 @@ export async function getUserOrders(userId: string) {
       .from('orders')
       .select(`
         *,
-        seller:users!orders_seller_id_fkey(user_id, first_name, last_name, university),
-        listing:listings(listing_id, title, price, images:listing_images(image_url, display_order))
+        seller:users!orders_seller_id_fkey(user_id, email),
+        listing:listings(listing_id, title, price, images:listing_images(image_url))
       `)
       .eq('buyer_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    // Sort images by display_order
-    const ordersWithSortedImages = data?.map(order => ({
-      ...order,
-      listing: {
-        ...order.listing,
-        images: order.listing?.images?.sort((a, b) => a.display_order - b.display_order) || []
-      }
-    }));
-
-    return { data: ordersWithSortedImages as Order[], error: null };
+    return { data: data as Order[], error: null };
   } catch (error) {
     console.error('Error fetching user orders:', error);
     return { data: null, error };
@@ -84,24 +75,15 @@ export async function getUserSales(userId: string) {
       .from('orders')
       .select(`
         *,
-        buyer:users!orders_buyer_id_fkey(user_id, first_name, last_name, university),
-        listing:listings(listing_id, title, price, images:listing_images(image_url, display_order))
+        buyer:users!orders_buyer_id_fkey(user_id, email),
+        listing:listings(listing_id, title, price, images:listing_images(image_url))
       `)
       .eq('seller_id', userId)
       .order('created_at', { ascending: false });
 
     if (error) throw error;
 
-    // Sort images by display_order
-    const salesWithSortedImages = data?.map(sale => ({
-      ...sale,
-      listing: {
-        ...sale.listing,
-        images: sale.listing?.images?.sort((a, b) => a.display_order - b.display_order) || []
-      }
-    }));
-
-    return { data: salesWithSortedImages as Order[], error: null };
+    return { data: data as Order[], error: null };
   } catch (error) {
     console.error('Error fetching user sales:', error);
     return { data: null, error };

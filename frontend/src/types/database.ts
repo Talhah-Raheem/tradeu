@@ -37,7 +37,6 @@ export interface ListingImage {
   image_id: number;
   listing_id: number;
   image_url: string;
-  display_order: number;
   created_at: string;
 }
 

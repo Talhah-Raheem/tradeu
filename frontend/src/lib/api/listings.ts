@@ -34,9 +34,9 @@ export async function getListings(filters?: {
       .from('listings')
       .select(`
         *,
-        seller:users!listings_user_id_fkey(user_id, first_name, last_name, university, profile_image_url),
-        category:categories!listings_categories_id_fkey(category_id, category_name),
-        images:listing_images(image_id, image_url, display_order)
+        seller:users(user_id, email),
+        category:categories(category_id, category_name),
+        images:listing_images(image_id, image_url)
       `)
       .order('created_at', { ascending: false });
 
@@ -64,44 +64,45 @@ export async function getListings(filters?: {
 
     if (error) throw error;
 
-    // Sort images by display_order
-    const listingsWithSortedImages = data?.map(listing => ({
-      ...listing,
-      images: listing.images?.sort((a, b) => a.display_order - b.display_order) || []
-    }));
-
-    return { data: listingsWithSortedImages as Listing[], error: null };
+    return { data: data as Listing[], error: null };
   } catch (error) {
-    console.error('Error fetching listings:', error);
+    const err = error as { message?: string; details?: string; hint?: string };
+    console.error('Error fetching listings:', err?.message || error);
+    if (err?.details || err?.hint) {
+      console.error('Listing fetch details:', err.details, err.hint);
+    }
     return { data: null, error };
   }
 }
 
 // Fetch a single listing by ID
-export async function getListingById(listingId: number) {
+export async function getListingById(listingId: number | string | bigint) {
   try {
+    const normalizedId =
+      typeof listingId === 'bigint'
+        ? listingId.toString()
+        : listingId;
+
     const { data, error } = await supabase
       .from('listings')
       .select(`
         *,
-        seller:users!listings_user_id_fkey(user_id, first_name, last_name, university, profile_image_url),
-        category:categories!listings_categories_id_fkey(category_id, category_name),
-        images:listing_images(image_id, image_url, display_order)
+        seller:users(user_id, email),
+        category:categories(category_id, category_name),
+        images:listing_images(image_id, image_url)
       `)
-      .eq('listing_id', listingId)
+      .eq('listing_id', normalizedId)
       .single();
 
     if (error) throw error;
 
-    // Sort images by display_order
-    const listingWithSortedImages = {
-      ...data,
-      images: data.images?.sort((a, b) => a.display_order - b.display_order) || []
-    };
-
-    return { data: listingWithSortedImages as Listing, error: null };
+    return { data: data as Listing, error: null };
   } catch (error) {
-    console.error('Error fetching listing:', error);
+    const err = error as { message?: string; details?: string; hint?: string };
+    console.error('Error fetching listing:', err?.message || error);
+    if (err?.details || err?.hint) {
+      console.error('Listing fetch details:', err.details, err.hint);
+    }
     return { data: null, error };
   }
 }
@@ -113,8 +114,8 @@ export async function getListingsBySeller(sellerId: string, status?: Listing['st
       .from('listings')
       .select(`
         *,
-        category:categories!listings_categories_id_fkey(category_id, category_name),
-        images:listing_images(image_id, image_url, display_order)
+        category:categories(category_id, category_name),
+        images:listing_images(image_id, image_url)
       `)
       .eq('user_id', sellerId)
       .order('created_at', { ascending: false });
@@ -127,15 +128,13 @@ export async function getListingsBySeller(sellerId: string, status?: Listing['st
 
     if (error) throw error;
 
-    // Sort images by display_order
-    const listingsWithSortedImages = data?.map(listing => ({
-      ...listing,
-      images: listing.images?.sort((a, b) => a.display_order - b.display_order) || []
-    }));
-
-    return { data: listingsWithSortedImages as Listing[], error: null };
+    return { data: data as Listing[], error: null };
   } catch (error) {
-    console.error('Error fetching seller listings:', error);
+    const err = error as { message?: string; details?: string; hint?: string };
+    console.error('Error fetching seller listings:', err?.message || error);
+    if (err?.details || err?.hint) {
+      console.error('Seller listing fetch details:', err.details, err.hint);
+    }
     return { data: null, error };
   }
 }
@@ -171,7 +170,11 @@ export async function createListing(listingData: CreateListingData) {
 
     return { data: listing, error: null };
   } catch (error) {
-    console.error('Error creating listing:', error);
+    const err = error as { message?: string; details?: string; hint?: string };
+    console.error('Error creating listing:', err?.message || error);
+    if (err?.details || err?.hint) {
+      console.error('Create listing details:', err.details, err.hint);
+    }
     return { data: null, error };
   }
 }

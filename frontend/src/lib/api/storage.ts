@@ -41,7 +41,6 @@ export async function uploadListingImages(listingId: number, files: File[]) {
         .insert({
           listing_id: listingId,
           image_url: publicUrl,
-          display_order: index,
         });
 
       if (dbError) throw dbError;

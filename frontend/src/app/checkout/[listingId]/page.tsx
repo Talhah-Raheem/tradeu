@@ -162,7 +162,12 @@ export default function CheckoutPage({ params }: { params: Promise<{ listingId: 
               <div className="flex-1">
                 <h3 className="font-bold text-gray-900 text-lg">{listing.title}</h3>
                 <p className="text-gray-600 text-sm">{listing.condition}</p>
-                <p className="text-gray-600 text-sm">Sold by: {listing.seller?.first_name} {listing.seller?.last_name}</p>
+                <p className="text-gray-600 text-sm">
+                  Sold by:{' '}
+                  {listing.seller?.first_name ||
+                    listing.seller?.email?.split('@')[0] ||
+                    'Seller'}
+                </p>
               </div>
               <div className="text-right">
                 <div className="text-2xl font-bold text-blue-600">${listing.price}</div>
