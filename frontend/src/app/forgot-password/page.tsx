@@ -37,13 +37,18 @@ export default function ForgotPasswordPage() {
 
     setIsLoading(true);
 
-    // TODO: Replace with actual Supabase password reset
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      const { supabase } = await import('@/lib/supabase');
 
-      // Simulate successful email sent
-      console.log('Password reset email sent to:', email);
+      const { error: resetError } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: `${window.location.origin}/reset-password`,
+      });
+
+      if (resetError) {
+        setError(resetError.message || 'Failed to send reset email. Please try again.');
+        return;
+      }
+
       setEmailSent(true);
     } catch (error) {
       console.error('Password reset error:', error);

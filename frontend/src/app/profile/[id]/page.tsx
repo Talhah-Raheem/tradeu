@@ -1,8 +1,12 @@
 'use client';
 
-import { useState, use } from 'react';
+import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
 import { User, MapPin, Calendar, Package, TrendingUp, MessageCircle, Flag, Star } from 'lucide-react';
+import { useAuth } from '@/contexts/AuthContext';
+import { getUserProfile, getUserStats } from '@/lib/api/users';
+import { getListingsBySeller } from '@/lib/api/listings';
+import { User as UserType, Listing } from '@/types/database';
 import StarRating from '@/components/StarRating';
 import ProductCard from '@/components/ProductCard';
 import ReviewCard from '@/components/ReviewCard';
@@ -10,72 +14,72 @@ import Button from '@/components/Button';
 
 export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active');
+  const [profileUser, setProfileUser] = useState<UserType | null>(null);
+  const [stats, setStats] = useState({ activeListings: 0, itemsSold: 0, responseRate: 95 });
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Mock user data
-  const user = {
-    id: id,
-    firstName: 'Sarah',
-    lastName: 'Johnson', // Optional
-    university: 'UC Berkeley',
-    memberSince: 'September 2024',
-    avatar: '', // Empty = show placeholder
-    rating: 4.8,
-    reviewCount: 24,
-    stats: {
-      itemsSold: 32,
-      activeListings: 8,
-      responseRate: 95
+  useEffect(() => {
+    loadProfileData();
+  }, [id, activeTab]);
+
+  const loadProfileData = async () => {
+    setLoading(true);
+
+    const [userResult, statsResult, listingsResult] = await Promise.all([
+      getUserProfile(id),
+      getUserStats(id),
+      getListingsBySeller(id, activeTab === 'active' ? 'available' : 'sold'),
+    ]);
+
+    if (userResult.data) {
+      setProfileUser(userResult.data);
     }
+
+    if (statsResult.data) {
+      setStats(statsResult.data);
+    }
+
+    if (listingsResult.data) {
+      setListings(listingsResult.data);
+    }
+
+    setLoading(false);
   };
 
-  // Mock active listings
-  const activeListings = [
-    {
-      id: 1,
-      title: 'Calculus Textbook',
-      description: 'Early Transcendentals 8th Edition',
-      price: 45,
-      condition: 'Like New',
-      emoji: '📚',
-      category: 'Textbooks',
-      time: '2 hours ago',
-      location: 'UC Berkeley'
-    },
-    {
-      id: 2,
-      title: 'Study Desk',
-      description: 'IKEA desk, perfect condition',
-      price: 80,
-      condition: 'Excellent',
-      emoji: '🪑',
-      category: 'Furniture',
-      time: '5 hours ago',
-      location: 'UC Berkeley'
-    },
-    {
-      id: 3,
-      title: 'Biology Lab Manual',
-      description: 'BIO 101 - Never used',
-      price: 25,
-      condition: 'New',
-      emoji: '🔬',
-      category: 'Textbooks',
-      time: '4 hours ago',
-      location: 'UC Berkeley'
-    },
-    {
-      id: 4,
-      title: 'Mini Fridge',
-      description: 'Perfect for dorm rooms',
-      price: 60,
-      condition: 'Like New',
-      emoji: '🧊',
-      category: 'Appliances',
-      time: '3 hours ago',
-      location: 'UC Berkeley'
-    }
-  ];
+  if (loading || !profileUser) {
+    return (
+      <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white p-8">
+        <div className="max-w-7xl mx-auto">
+          <div className="animate-pulse">
+            <div className="h-32 w-32 bg-gray-200 rounded-full mb-4"></div>
+            <div className="h-8 bg-gray-200 rounded w-1/2 mb-4"></div>
+            <div className="h-4 bg-gray-200 rounded w-1/4"></div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const isOwnProfile = currentUser?.id === id;
+
+  // Mock user data (now using real data)
+  const user = {
+    id: id,
+    firstName: profileUser.first_name,
+    lastName: profileUser.last_name || '',
+    university: profileUser.university,
+    memberSince: new Date(profileUser.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' }),
+    avatar: profileUser.profile_image_url || '',
+    rating: 4.8,
+    reviewCount: 24,
+    stats: stats
+  };
+
+  // Use real listings from database
+  const displayListings = listings;
 
   // Mock reviews
   const reviews = [
@@ -245,9 +249,60 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
           {activeTab === 'active' && (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-              {activeListings.map((item) => (
-                <ProductCard key={item.id} {...item} />
-              ))}
+              {displayListings.length > 0 ? (
+                displayListings.map((listing) => (
+                  <Link key={listing.listing_id} href={`/listings/${listing.listing_id}`}>
+                    <div className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-2xl hover:border-blue-300 transition-all hover:-translate-y-2 cursor-pointer group">
+                      <div className="bg-gradient-to-br from-gray-100 to-gray-200 h-48 rounded-lg mb-4 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform">
+                        {listing.images && listing.images.length > 0 ? (
+                          <img
+                            src={listing.images[0].image_url}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-6xl">📦</div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            {listing.category?.category_name}
+                          </span>
+                          <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">
+                            {listing.condition}
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition">
+                          {listing.title}
+                        </h4>
+                        <p className="text-gray-600 text-sm line-clamp-2">{listing.description}</p>
+
+                        <div className="pt-3 border-t border-gray-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-2xl font-bold text-blue-600">${listing.price}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {listing.location}
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {new Date(listing.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No active listings</p>
+                </div>
+              )}
             </div>
           )}
 

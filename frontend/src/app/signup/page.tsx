@@ -32,6 +32,7 @@ export default function SignupPage() {
     'Stanford University',
     'UCLA',
     'USC',
+    'Cal State Fullerton',
     'MIT',
     'Harvard University',
     'Columbia University',
@@ -91,19 +92,39 @@ export default function SignupPage() {
 
     setIsLoading(true);
 
-    // TODO: Replace with actual Supabase authentication
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { supabase } = await import('@/lib/supabase');
 
-      // Simulate successful signup
-      console.log('Signup attempt:', formData);
+      // Sign up with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: formData.name.split(' ')[0],
+            last_name: formData.name.split(' ').slice(1).join(' ') || '',
+            university: formData.university,
+          },
+        },
+      });
 
-      // Redirect to email verification page or home
-      router.push('/');
+      if (error) {
+        setErrors({ email: error.message || 'This email is already registered' });
+        return;
+      }
+
+      // Check if email confirmation is required
+      if (data?.user && !data.session) {
+        // Email confirmation required
+        alert('Please check your email to verify your account before logging in.');
+        router.push('/login');
+      } else {
+        // Auto-login successful, redirect to home
+        router.push('/');
+      }
     } catch (error) {
       console.error('Signup error:', error);
-      setErrors({ email: 'This email is already registered' });
+      setErrors({ email: 'An error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +176,7 @@ export default function SignupPage() {
           <div className="relative">
             <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-5 w-5" />
             <select
-              className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all outline-none appearance-none ${
+              className={`w-full pl-10 pr-4 py-3 border-2 rounded-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all outline-none appearance-none text-gray-900 ${
                 errors.university
                   ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
                   : 'border-gray-300'

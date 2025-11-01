@@ -1,21 +1,29 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { Mail, Lock, Shield } from 'lucide-react';
 import AuthLayout from '@/components/AuthLayout';
 import Input from '@/components/Input';
 import Button from '@/components/Button';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { signIn, user, loading: authLoading } = useAuth();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
   });
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [isLoading, setIsLoading] = useState(false);
+
+  useEffect(() => {
+    if (!authLoading && user) {
+      router.replace('/');
+    }
+  }, [authLoading, router, user]);
 
   const validateForm = () => {
     const newErrors: { email?: string; password?: string } = {};
@@ -47,19 +55,20 @@ export default function LoginPage() {
 
     setIsLoading(true);
 
-    // TODO: Replace with actual Supabase authentication
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      setErrors({});
+      const { error } = await signIn(formData.email, formData.password);
 
-      // Simulate successful login
-      console.log('Login attempt:', formData);
+      if (error) {
+        setErrors({ email: error.message || 'Invalid email or password' });
+        return;
+      }
 
-      // Redirect to home or dashboard after login
+      // Redirect to home after successful login
       router.push('/');
     } catch (error) {
       console.error('Login error:', error);
-      setErrors({ email: 'Invalid email or password' });
+      setErrors({ email: 'An error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
     }
