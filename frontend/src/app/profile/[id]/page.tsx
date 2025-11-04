@@ -22,32 +22,42 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadProfileData = async () => {
+      if (!isMounted) return;
+
+      setLoading(true);
+
+      const [userResult, statsResult, listingsResult] = await Promise.all([
+        getUserProfile(id),
+        getUserStats(id),
+        getListingsBySeller(id, activeTab === 'active' ? 'active' : 'sold'),
+      ]);
+
+      if (!isMounted) return;
+
+      if (userResult.data) {
+        setProfileUser(userResult.data);
+      }
+
+      if (statsResult.data) {
+        setStats(statsResult.data);
+      }
+
+      if (listingsResult.data) {
+        setListings(listingsResult.data);
+      }
+
+      setLoading(false);
+    };
+
     loadProfileData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id, activeTab]);
-
-  const loadProfileData = async () => {
-    setLoading(true);
-
-    const [userResult, statsResult, listingsResult] = await Promise.all([
-      getUserProfile(id),
-      getUserStats(id),
-      getListingsBySeller(id, activeTab === 'active' ? 'active' : 'sold'),
-    ]);
-
-    if (userResult.data) {
-      setProfileUser(userResult.data);
-    }
-
-    if (statsResult.data) {
-      setStats(statsResult.data);
-    }
-
-    if (listingsResult.data) {
-      setListings(listingsResult.data);
-    }
-
-    setLoading(false);
-  };
 
   if (loading || !profileUser) {
     return (

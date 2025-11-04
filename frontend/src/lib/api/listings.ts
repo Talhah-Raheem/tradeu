@@ -34,7 +34,7 @@ export async function getListings(filters?: {
       .from('listings')
       .select(`
         *,
-        seller:users(user_id, email),
+        seller:users(user_id, email, first_name, last_name),
         category:categories(category_id, category_name),
         images:listing_images(image_id, image_url)
       `)
@@ -87,7 +87,7 @@ export async function getListingById(listingId: number | string | bigint) {
       .from('listings')
       .select(`
         *,
-        seller:users(user_id, email),
+        seller:users(user_id, email, first_name, last_name),
         category:categories(category_id, category_name),
         images:listing_images(image_id, image_url)
       `)

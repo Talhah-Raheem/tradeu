@@ -37,36 +37,46 @@ export default function EditListingPage({ params }: { params: Promise<{ id: stri
   }, [user, authLoading, router]);
 
   useEffect(() => {
+    let isMounted = true;
+
+    const loadData = async () => {
+      if (!isMounted) return;
+
+      setLoading(true);
+      const [listingResult, categoriesResult] = await Promise.all([
+        getListingById(parseInt(id)),
+        getCategories(),
+      ]);
+
+      if (!isMounted) return;
+
+      if (listingResult.data) {
+        const listing = listingResult.data;
+        setListing(listing);
+        setFormData({
+          title: listing.title,
+          description: listing.description,
+          price: listing.price.toString(),
+          categoryId: listing.categories_id.toString(),
+          location: listing.location,
+          condition: listing.condition,
+          status: listing.status,
+        });
+      }
+
+      if (categoriesResult.data) {
+        setCategories(categoriesResult.data);
+      }
+
+      setLoading(false);
+    };
+
     loadData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [id]);
-
-  const loadData = async () => {
-    setLoading(true);
-    const [listingResult, categoriesResult] = await Promise.all([
-      getListingById(parseInt(id)),
-      getCategories(),
-    ]);
-
-    if (listingResult.data) {
-      const listing = listingResult.data;
-      setListing(listing);
-      setFormData({
-        title: listing.title,
-        description: listing.description,
-        price: listing.price.toString(),
-        categoryId: listing.categories_id.toString(),
-        location: listing.location,
-        condition: listing.condition,
-        status: listing.status,
-      });
-    }
-
-    if (categoriesResult.data) {
-      setCategories(categoriesResult.data);
-    }
-
-    setLoading(false);
-  };
 
   const validateForm = () => {
     const newErrors: Record<string, string> = {};

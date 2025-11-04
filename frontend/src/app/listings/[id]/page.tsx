@@ -31,17 +31,28 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
   };
 
   useEffect(() => {
-    loadListing();
-  }, [id]);
+    let isMounted = true;
 
-  const loadListing = async () => {
-    setLoading(true);
-    const { data } = await getListingById(id);
-    if (data) {
-      setListing(data);
-    }
-    setLoading(false);
-  };
+    const loadListing = async () => {
+      if (!isMounted) return;
+
+      setLoading(true);
+      const { data } = await getListingById(id);
+
+      if (!isMounted) return;
+
+      if (data) {
+        setListing(data);
+      }
+      setLoading(false);
+    };
+
+    loadListing();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [id]);
 
   const handleDelete = async () => {
     if (!confirm('Are you sure you want to delete this listing?')) return;
@@ -200,9 +211,9 @@ export default function ListingDetailPage({ params }: { params: Promise<{ id: st
                 </div>
                 <div className="flex-1">
                   <div className="font-semibold text-gray-900">
-                    {listing.seller?.first_name ||
-                      listing.seller?.email?.split('@')[0] ||
-                      'Seller'}
+                    {listing.seller?.first_name
+                      ? `${listing.seller.first_name}${listing.seller.last_name ? ' ' + listing.seller.last_name : ''}`
+                      : listing.seller?.email?.split('@')[0] || 'Seller'}
                   </div>
                   <div className="text-sm text-gray-600">{listing.seller?.university}</div>
                 </div>

@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Search, Plus, BookOpen, Shield, Users, TrendingUp, Star, Clock, MapPin, LogOut } from "lucide-react";
+import { Search, Plus, BookOpen, Shield, Users as UsersIcon, TrendingUp, Star, Clock, MapPin, LogOut, User, ChevronDown } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { getListings } from "@/lib/api/listings";
 import { Listing } from "@/types/database";
@@ -13,31 +13,46 @@ export default function Home() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    loadListings();
-  }, []);
+    let isMounted = true;
 
-  const loadListings = async () => {
-    setLoading(true);
-    setErrorMessage(null);
-    try {
-      const { data, error } = await getListings({ limit: 8 });
-      if (error) {
-        console.error("Error loading listings:", error);
+    const loadListings = async () => {
+      if (!isMounted) return;
+
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const { data, error } = await getListings({ limit: 8 });
+        if (!isMounted) return;
+
+        if (error) {
+          console.error("Error loading listings:", error);
+          setListings([]);
+          setErrorMessage("Unable to load listings right now.");
+          return;
+        }
+        setListings(data ?? []);
+      } catch (error) {
+        if (!isMounted) return;
+        console.error("Unexpected error loading listings:", error);
         setListings([]);
         setErrorMessage("Unable to load listings right now.");
-        return;
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
       }
-      setListings(data ?? []);
-    } catch (error) {
-      console.error("Unexpected error loading listings:", error);
-      setListings([]);
-      setErrorMessage("Unable to load listings right now.");
-    } finally {
-      setLoading(false);
-    }
-  };
+    };
+
+    loadListings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const handleSearch = async () => {
     setLoading(true);
@@ -66,6 +81,23 @@ export default function Home() {
     window.location.href = '/';
   };
 
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    if (isProfileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProfileDropdownOpen]);
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
       {/* Enhanced Header */}
@@ -89,24 +121,47 @@ export default function Home() {
             <div className="flex items-center space-x-3">
               {user ? (
                 <>
-                  <Link href={`/profile/${user.id}`}>
-                    <button className="text-gray-700 hover:text-gray-900 px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition font-medium">
-                      Hi, {userProfile?.first_name || 'there'}
-                    </button>
-                  </Link>
                   <Link href="/listings/create">
                     <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md flex items-center font-medium">
                       <Plus className="h-4 w-4 mr-2" />
                       Sell Item
                     </button>
                   </Link>
-                  <button
-                    onClick={handleSignOut}
-                    className="text-gray-700 hover:text-gray-900 px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-red-600 hover:bg-red-50 transition"
-                    title="Sign out"
-                  >
-                    <LogOut className="h-4 w-4" />
-                  </button>
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                      className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                        <User className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isProfileDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border-2 border-gray-200 py-2 z-50">
+                        <Link href={`/profile/${user.id}`}>
+                          <button
+                            className="w-full text-left px-4 py-2 hover:bg-gray-50 transition flex items-center space-x-3"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <User className="h-4 w-4 text-gray-600" />
+                            <span className="text-gray-900 font-medium">View Public Profile</span>
+                          </button>
+                        </Link>
+                        <hr className="my-2 border-gray-200" />
+                        <button
+                          onClick={() => {
+                            setIsProfileDropdownOpen(false);
+                            handleSignOut();
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-red-50 transition flex items-center space-x-3 text-red-600"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span className="font-medium">Log Out</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               ) : (
                 <>
@@ -282,9 +337,9 @@ export default function Home() {
                         <div className="flex items-center text-yellow-500">
                           <Star className="h-4 w-4 fill-current" />
                           <span className="text-sm ml-1 text-gray-600">
-                            {listing.seller?.first_name ||
-                              listing.seller?.email?.split('@')[0] ||
-                              'Seller'}
+                            {listing.seller?.first_name
+                              ? `${listing.seller.first_name}${listing.seller.last_name ? ' ' + listing.seller.last_name : ''}`
+                              : listing.seller?.email?.split('@')[0] || 'Seller'}
                           </span>
                         </div>
                         </div>
@@ -327,7 +382,7 @@ export default function Home() {
             </div>
             <div className="text-center">
               <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-white" />
+                <UsersIcon className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-xl font-bold mb-2">Campus Community</h4>
               <p className="text-blue-100">Buy and sell locally with students from your university.</p>
