@@ -28,6 +28,7 @@ export default function SignupPage() {
 
   // Popular universities for the dropdown
   const universities = [
+    'Cal State Fullerton',
     'UC Berkeley',
     'Stanford University',
     'UCLA',
@@ -91,19 +92,39 @@ export default function SignupPage() {
 
     setIsLoading(true);
 
-    // TODO: Replace with actual Supabase authentication
     try {
-      // Mock API call
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      const { supabase } = await import('@/lib/supabase');
 
-      // Simulate successful signup
-      console.log('Signup attempt:', formData);
+      // Sign up with Supabase Auth
+      const { data, error } = await supabase.auth.signUp({
+        email: formData.email,
+        password: formData.password,
+        options: {
+          data: {
+            first_name: formData.name.split(' ')[0],
+            last_name: formData.name.split(' ').slice(1).join(' ') || '',
+            university: formData.university,
+          },
+        },
+      });
 
-      // Redirect to email verification page or home
-      router.push('/');
+      if (error) {
+        setErrors({ email: error.message || 'This email is already registered' });
+        return;
+      }
+
+      // Check if email confirmation is required
+      if (data?.user && !data.session) {
+        // Email confirmation required
+        alert('Please check your email to verify your account before logging in.');
+        router.push('/login');
+      } else {
+        // Auto-login successful, redirect to home
+        router.push('/');
+      }
     } catch (error) {
       console.error('Signup error:', error);
-      setErrors({ email: 'This email is already registered' });
+      setErrors({ email: 'An error occurred. Please try again.' });
     } finally {
       setIsLoading(false);
     }

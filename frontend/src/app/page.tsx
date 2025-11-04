@@ -1,97 +1,102 @@
+'use client';
+
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
-import { Search, Plus, BookOpen, Shield, Users, TrendingUp, Star, Clock, MapPin } from "lucide-react";
+import { Search, Plus, BookOpen, Shield, Users as UsersIcon, TrendingUp, Star, Clock, MapPin, LogOut, User, ChevronDown } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
+import { getListings } from "@/lib/api/listings";
+import { Listing } from "@/types/database";
 
 export default function Home() {
-  const featuredItems = [
-    {
-      id: 1,
-      title: "Calculus Textbook",
-      description: "Early Transcendentals 8th Edition",
-      price: 45,
-      condition: "Like New",
-      emoji: "📚",
-      category: "Textbooks",
-      time: "2 hours ago",
-      location: "UC Berkeley"
-    },
-    {
-      id: 2,
-      title: "Study Desk",
-      description: "IKEA desk, perfect condition",
-      price: 80,
-      condition: "Excellent",
-      emoji: "🪑",
-      category: "Furniture",
-      time: "5 hours ago",
-      location: "Stanford"
-    },
-    {
-      id: 3,
-      title: "MacBook Pro 2020",
-      description: "13-inch, 16GB RAM, 256GB SSD",
-      price: 650,
-      condition: "Good",
-      emoji: "💻",
-      category: "Electronics",
-      time: "1 day ago",
-      location: "UCLA"
-    },
-    {
-      id: 4,
-      title: "Mini Fridge",
-      description: "Perfect for dorm rooms",
-      price: 60,
-      condition: "Like New",
-      emoji: "🧊",
-      category: "Appliances",
-      time: "3 hours ago",
-      location: "USC"
-    },
-    {
-      id: 5,
-      title: "Biology Lab Manual",
-      description: "BIO 101 - Never used",
-      price: 25,
-      condition: "New",
-      emoji: "🔬",
-      category: "Textbooks",
-      time: "4 hours ago",
-      location: "UC Berkeley"
-    },
-    {
-      id: 6,
-      title: "Gaming Chair",
-      description: "Ergonomic, adjustable height",
-      price: 120,
-      condition: "Good",
-      emoji: "🪑",
-      category: "Furniture",
-      time: "6 hours ago",
-      location: "MIT"
-    },
-    {
-      id: 7,
-      title: "iPad Air",
-      description: "4th Gen with Apple Pencil",
-      price: 400,
-      condition: "Excellent",
-      emoji: "📱",
-      category: "Electronics",
-      time: "8 hours ago",
-      location: "Harvard"
-    },
-    {
-      id: 8,
-      title: "Microwave Oven",
-      description: "Compact, 700W",
-      price: 35,
-      condition: "Good",
-      emoji: "🍽️",
-      category: "Appliances",
-      time: "12 hours ago",
-      location: "Columbia"
+  const { user, userProfile, signOut } = useAuth();
+  const [listings, setListings] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadListings = async () => {
+      if (!isMounted) return;
+
+      setLoading(true);
+      setErrorMessage(null);
+      try {
+        const { data, error } = await getListings({ limit: 8 });
+        if (!isMounted) return;
+
+        if (error) {
+          console.error("Error loading listings:", error);
+          setListings([]);
+          setErrorMessage("Unable to load listings right now.");
+          return;
+        }
+        setListings(data ?? []);
+      } catch (error) {
+        if (!isMounted) return;
+        console.error("Unexpected error loading listings:", error);
+        setListings([]);
+        setErrorMessage("Unable to load listings right now.");
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    };
+
+    loadListings();
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const handleSearch = async () => {
+    setLoading(true);
+    setErrorMessage(null);
+    try {
+      const { data, error } = await getListings({ search: searchTerm, limit: 8 });
+      if (error) {
+        console.error("Error searching listings:", error);
+        setListings([]);
+        setErrorMessage("Unable to load listings for that search.");
+        return;
+      }
+      setListings(data ?? []);
+    } catch (error) {
+      console.error("Unexpected error searching listings:", error);
+      setListings([]);
+      setErrorMessage("Unable to load listings for that search.");
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const handleSignOut = async () => {
+    await signOut();
+    // Optionally redirect to home or reload
+    window.location.href = '/';
+  };
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsProfileDropdownOpen(false);
+      }
+    };
+
+    if (isProfileDropdownOpen) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [isProfileDropdownOpen]);
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-50 to-white">
@@ -114,15 +119,64 @@ export default function Home() {
               <a href="#" className="text-gray-600 hover:text-blue-600 font-medium transition">About</a>
             </nav>
             <div className="flex items-center space-x-3">
-              <Link href="/login">
-                <button className="text-gray-700 hover:text-gray-900 px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition font-medium">
-                  Login
-                </button>
-              </Link>
-              <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md flex items-center font-medium">
-                <Plus className="h-4 w-4 mr-2" />
-                Sell Item
-              </button>
+              {user ? (
+                <>
+                  <Link href="/listings/create">
+                    <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md flex items-center font-medium">
+                      <Plus className="h-4 w-4 mr-2" />
+                      Sell Item
+                    </button>
+                  </Link>
+                  <div className="relative" ref={dropdownRef}>
+                    <button
+                      onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
+                      className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 px-3 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition"
+                    >
+                      <div className="w-8 h-8 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center">
+                        <User className="h-4 w-4 text-blue-600" />
+                      </div>
+                      <ChevronDown className={`h-4 w-4 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
+                    </button>
+                    {isProfileDropdownOpen && (
+                      <div className="absolute right-0 mt-2 w-56 bg-white rounded-lg shadow-lg border-2 border-gray-200 py-2 z-50">
+                        <Link href={`/profile/${user.id}`}>
+                          <button
+                            className="w-full text-left px-4 py-2 hover:bg-gray-50 transition flex items-center space-x-3"
+                            onClick={() => setIsProfileDropdownOpen(false)}
+                          >
+                            <User className="h-4 w-4 text-gray-600" />
+                            <span className="text-gray-900 font-medium">View Public Profile</span>
+                          </button>
+                        </Link>
+                        <hr className="my-2 border-gray-200" />
+                        <button
+                          onClick={() => {
+                            setIsProfileDropdownOpen(false);
+                            handleSignOut();
+                          }}
+                          className="w-full text-left px-4 py-2 hover:bg-red-50 transition flex items-center space-x-3 text-red-600"
+                        >
+                          <LogOut className="h-4 w-4" />
+                          <span className="font-medium">Log Out</span>
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <Link href="/login">
+                    <button className="text-gray-700 hover:text-gray-900 px-4 py-2 border-2 border-gray-300 rounded-lg hover:border-blue-600 hover:bg-blue-50 transition font-medium">
+                      Login
+                    </button>
+                  </Link>
+                  <Link href="/signup">
+                    <button className="bg-gradient-to-r from-blue-600 to-blue-700 text-white px-5 py-2 rounded-lg hover:from-blue-700 hover:to-blue-800 transition shadow-md flex items-center font-medium">
+                      Get Started
+                    </button>
+                  </Link>
+                </>
+              )}
             </div>
           </div>
         </div>
@@ -150,9 +204,15 @@ export default function Home() {
               <input
                 type="text"
                 placeholder="Search for textbooks, furniture, electronics..."
-                className="w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 placeholder-gray-400 text-gray-900 shadow-sm text-lg transition"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
+                className="w-full pl-12 pr-4 py-4 border-2 border-gray-300 rounded-xl focus:ring-4 focus:ring-blue-200 focus:border-blue-500 placeholder:text-gray-500 text-gray-900 shadow-sm text-lg transition"
               />
-              <button className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium">
+              <button
+                onClick={handleSearch}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition font-medium"
+              >
                 Search
               </button>
             </div>
@@ -227,47 +287,82 @@ export default function Home() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {featuredItems.map((item) => (
-              <div key={item.id} className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-2xl hover:border-blue-300 transition-all hover:-translate-y-2 cursor-pointer group">
-                <div className="bg-gradient-to-br from-gray-100 to-gray-200 h-48 rounded-lg mb-4 flex items-center justify-center text-6xl group-hover:scale-110 transition-transform">
-                  {item.emoji}
-                </div>
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                      {item.category}
-                    </span>
-                    <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">
-                      {item.condition}
-                    </span>
-                  </div>
-                  <h4 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition">
-                    {item.title}
-                  </h4>
-                  <p className="text-gray-600 text-sm line-clamp-2">{item.description}</p>
-                  
-                  <div className="pt-3 border-t border-gray-100">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-2xl font-bold text-blue-600">${item.price}</span>
-                      <div className="flex items-center text-yellow-500">
-                        <Star className="h-4 w-4 fill-current" />
-                        <span className="text-sm ml-1 text-gray-600">4.8</span>
-                      </div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-500">
-                      <div className="flex items-center">
-                        <MapPin className="h-3 w-3 mr-1" />
-                        {item.location}
-                      </div>
-                      <div className="flex items-center">
-                        <Clock className="h-3 w-3 mr-1" />
-                        {item.time}
-                      </div>
-                    </div>
+            {loading && !errorMessage ? (
+              // Loading skeleton
+              Array.from({ length: 8 }).map((_, i) => (
+                <div key={i} className="bg-white border-2 border-gray-200 rounded-xl p-5 animate-pulse">
+                  <div className="bg-gray-200 h-48 rounded-lg mb-4"></div>
+                  <div className="space-y-2">
+                    <div className="h-4 bg-gray-200 rounded w-3/4"></div>
+                    <div className="h-4 bg-gray-200 rounded w-1/2"></div>
                   </div>
                 </div>
+              ))
+            ) : errorMessage ? (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600">{errorMessage}</p>
               </div>
-            ))}
+            ) : listings.length > 0 ? (
+              listings.map((listing) => (
+                <Link key={listing.listing_id} href={`/listings/${listing.listing_id}`}>
+                  <div className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-2xl hover:border-blue-300 transition-all hover:-translate-y-2 cursor-pointer group">
+                    <div className="bg-gradient-to-br from-gray-100 to-gray-200 h-48 rounded-lg mb-4 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform">
+                      {listing.images && listing.images.length > 0 ? (
+                        <img
+                          src={listing.images[0].image_url}
+                          alt={listing.title}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-6xl">📦</div>
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                          {listing.category?.category_name}
+                        </span>
+                        <span className="text-xs font-semibold text-green-600 bg-green-50 px-2 py-1 rounded">
+                          {listing.condition}
+                        </span>
+                      </div>
+                      <h4 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition">
+                        {listing.title}
+                      </h4>
+                      <p className="text-gray-600 text-sm line-clamp-2">{listing.description}</p>
+
+                      <div className="pt-3 border-t border-gray-100">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-2xl font-bold text-blue-600">${listing.price}</span>
+                        <div className="flex items-center text-yellow-500">
+                          <Star className="h-4 w-4 fill-current" />
+                          <span className="text-sm ml-1 text-gray-600">
+                            {listing.seller?.first_name
+                              ? `${listing.seller.first_name}${listing.seller.last_name ? ' ' + listing.seller.last_name : ''}`
+                              : listing.seller?.email?.split('@')[0] || 'Seller'}
+                          </span>
+                        </div>
+                        </div>
+                        <div className="flex items-center justify-between text-xs text-gray-500">
+                          <div className="flex items-center">
+                            <MapPin className="h-3 w-3 mr-1" />
+                            {listing.location}
+                          </div>
+                          <div className="flex items-center">
+                            <Clock className="h-3 w-3 mr-1" />
+                            {new Date(listing.created_at).toLocaleDateString()}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-12">
+                <p className="text-gray-600">No listings found. Try a different search term.</p>
+              </div>
+            )}
           </div>
         </section>
 
@@ -287,7 +382,7 @@ export default function Home() {
             </div>
             <div className="text-center">
               <div className="bg-white/20 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Users className="h-8 w-8 text-white" />
+                <UsersIcon className="h-8 w-8 text-white" />
               </div>
               <h4 className="text-xl font-bold mb-2">Campus Community</h4>
               <p className="text-blue-100">Buy and sell locally with students from your university.</p>

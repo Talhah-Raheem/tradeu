@@ -30,7 +30,7 @@ export default function Input({
           </div>
         )}
         <input
-          className={`w-full ${icon ? 'pl-10' : 'pl-4'} pr-4 py-3 border-2 rounded-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all outline-none ${
+          className={`w-full ${icon ? 'pl-10' : 'pl-4'} pr-4 py-3 border-2 rounded-lg focus:ring-4 focus:ring-blue-200 focus:border-blue-500 transition-all outline-none text-gray-900 placeholder:text-gray-500 ${
             error
               ? 'border-red-500 focus:border-red-500 focus:ring-red-200'
               : 'border-gray-300'
