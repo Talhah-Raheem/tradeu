@@ -28,6 +28,7 @@ export default function SignupPage() {
 
   // Popular universities for the dropdown
   const universities = [
+    'Cal State Fullerton',
     'UC Berkeley',
     'Stanford University',
     'UCLA',
