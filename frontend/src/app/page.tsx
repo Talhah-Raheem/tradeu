@@ -8,6 +8,7 @@ import Hero from "@/components/landing/Hero";
 import Categories from "@/components/landing/Categories";
 import FeaturedItems from "@/components/landing/FeaturedItems";
 import WhyChooseUs from "@/components/landing/WhyChooseUs";
+import HowItWorks from "@/components/landing/HowItWorks";
 import Footer from "@/components/landing/Footer";
 
 export default function Home() {
@@ -84,6 +85,7 @@ export default function Home() {
         <Categories />
         <FeaturedItems listings={listings} loading={loading} errorMessage={errorMessage} />
         <WhyChooseUs />
+        <HowItWorks />
       </main>
       <Footer />
     </div>

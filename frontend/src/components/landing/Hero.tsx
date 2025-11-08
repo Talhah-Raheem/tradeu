@@ -2,6 +2,7 @@
 
 import { Search, Shield, Sparkles } from 'lucide-react';
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 
 interface HeroProps {
   onSearch: (searchTerm: string) => void;
@@ -9,9 +10,24 @@ interface HeroProps {
 
 const Hero = ({ onSearch }: HeroProps) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const router = useRouter();
 
   const handleSearch = () => {
-    onSearch(searchTerm);
+    if (searchTerm.trim()) {
+      onSearch(searchTerm);
+      // Optionally navigate to listings page with search
+      // router.push(`/listings?search=${encodeURIComponent(searchTerm)}`);
+    }
+  };
+
+  const handlePopularSearch = (term: string) => {
+    setSearchTerm(term);
+    onSearch(term);
+    // Scroll to listings section
+    const listingsSection = document.getElementById('featured-items');
+    if (listingsSection) {
+      listingsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
   };
 
   return (
@@ -57,13 +73,22 @@ const Hero = ({ onSearch }: HeroProps) => {
 
         <div className="flex flex-wrap items-center justify-center gap-3 mt-6 text-sm text-gray-500">
           <span className="font-medium">Popular:</span>
-          <button className="px-4 py-1.5 bg-white border border-gray-200 rounded-full hover:border-soft-blue-400 hover:text-soft-blue-600 transition-colors font-medium">
+          <button
+            onClick={() => handlePopularSearch('textbook')}
+            className="px-4 py-1.5 bg-white border border-gray-200 rounded-full hover:border-soft-blue-400 hover:text-soft-blue-600 transition-colors font-medium"
+          >
             Textbooks
           </button>
-          <button className="px-4 py-1.5 bg-white border border-gray-200 rounded-full hover:border-soft-blue-400 hover:text-soft-blue-600 transition-colors font-medium">
+          <button
+            onClick={() => handlePopularSearch('furniture')}
+            className="px-4 py-1.5 bg-white border border-gray-200 rounded-full hover:border-soft-blue-400 hover:text-soft-blue-600 transition-colors font-medium"
+          >
             Furniture
           </button>
-          <button className="px-4 py-1.5 bg-white border border-gray-200 rounded-full hover:border-soft-blue-400 hover:text-soft-blue-600 transition-colors font-medium">
+          <button
+            onClick={() => handlePopularSearch('electronics')}
+            className="px-4 py-1.5 bg-white border border-gray-200 rounded-full hover:border-soft-blue-400 hover:text-soft-blue-600 transition-colors font-medium"
+          >
             Electronics
           </button>
         </div>

@@ -12,16 +12,18 @@ interface FeaturedItemsProps {
 
 const FeaturedItems = ({ listings, loading, errorMessage }: FeaturedItemsProps) => {
   return (
-    <section className="mb-24 px-4">
+    <section id="featured-items" className="mb-24 px-4">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
         <div>
           <h2 className="text-3xl sm:text-4xl font-bold text-gray-900 mb-2">Recent Listings</h2>
           <p className="text-gray-600 text-lg">Freshly posted by students on campus</p>
         </div>
-        <button className="group flex items-center space-x-2 text-soft-blue-600 hover:text-soft-blue-700 font-bold transition-colors bg-soft-blue-50 hover:bg-soft-blue-100 px-5 py-3 rounded-full">
-          <span>View All</span>
-          <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-        </button>
+        <Link href="/listings">
+          <button className="group flex items-center space-x-2 text-soft-blue-600 hover:text-soft-blue-700 font-bold transition-colors bg-soft-blue-50 hover:bg-soft-blue-100 px-5 py-3 rounded-full">
+            <span>View All</span>
+            <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+          </button>
+        </Link>
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

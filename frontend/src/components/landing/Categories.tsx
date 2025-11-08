@@ -1,4 +1,5 @@
 import { ArrowRight, BookOpen, Armchair, Laptop } from 'lucide-react';
+import Link from 'next/link';
 
 interface CategoryCardProps {
   icon: React.ElementType;
@@ -8,20 +9,23 @@ interface CategoryCardProps {
   iconBg: string;
   iconColor: string;
   hoverShadow: string;
+  href: string;
 }
 
-const CategoryCard = ({ icon: Icon, title, description, bgGradient, iconBg, iconColor, hoverShadow }: CategoryCardProps) => (
-  <div className={`${bgGradient} p-8 rounded-3xl hover:shadow-xl ${hoverShadow} transition-all duration-300 cursor-pointer group border border-white/50`}>
-    <div className={`${iconBg} w-14 h-14 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300 shadow-md`}>
-      <Icon className={`h-7 w-7 ${iconColor}`} />
+const CategoryCard = ({ icon: Icon, title, description, bgGradient, iconBg, iconColor, hoverShadow, href }: CategoryCardProps) => (
+  <Link href={href}>
+    <div className={`${bgGradient} p-8 rounded-3xl hover:shadow-xl ${hoverShadow} transition-all duration-300 cursor-pointer group border border-white/50`}>
+      <div className={`${iconBg} w-14 h-14 rounded-2xl flex items-center justify-center mb-5 group-hover:scale-110 transition-transform duration-300 shadow-md`}>
+        <Icon className={`h-7 w-7 ${iconColor}`} />
+      </div>
+      <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
+      <p className="text-gray-700 text-sm mb-5 leading-relaxed">{description}</p>
+      <div className="flex items-center text-gray-900 font-bold text-sm group-hover:gap-2 gap-1 transition-all">
+        <span>Explore</span>
+        <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
+      </div>
     </div>
-    <h3 className="text-xl font-bold text-gray-900 mb-2">{title}</h3>
-    <p className="text-gray-700 text-sm mb-5 leading-relaxed">{description}</p>
-    <div className="flex items-center text-gray-900 font-bold text-sm group-hover:gap-2 gap-1 transition-all">
-      <span>Explore</span>
-      <ArrowRight className="h-4 w-4 transform group-hover:translate-x-1 transition-transform" />
-    </div>
-  </div>
+  </Link>
 );
 
 const Categories = () => (
@@ -39,6 +43,7 @@ const Categories = () => (
         iconBg="bg-white"
         iconColor="text-soft-blue-600"
         hoverShadow="hover:shadow-soft-blue-200"
+        href="/listings?category=Textbooks"
       />
       <CategoryCard
         icon={Armchair}
@@ -48,6 +53,7 @@ const Categories = () => (
         iconBg="bg-white"
         iconColor="text-lilac-600"
         hoverShadow="hover:shadow-lilac-200"
+        href="/listings?category=Furniture"
       />
       <CategoryCard
         icon={Laptop}
@@ -57,6 +63,7 @@ const Categories = () => (
         iconBg="bg-white"
         iconColor="text-soft-green-600"
         hoverShadow="hover:shadow-soft-green-200"
+        href="/listings?category=Electronics"
       />
     </div>
   </div>
