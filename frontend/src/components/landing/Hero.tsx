@@ -45,8 +45,8 @@ const Hero = ({ onSearch }: HeroProps) => {
         </span>
       </h1>
 
-      <p className="text-lg sm:text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed font-medium">
-        Buy, sell, and trade with verified students. Safe, easy, and built for campus life.
+      <p className="text-lg sm:text-xl text-gray-600 mb-12 max-w-2xl mx-auto leading-relaxed font-medium text-balance">
+        Buy, sell, and trade with verified students. Safe, easy, and built for campus&nbsp;life.
       </p>
 
       <div className="max-w-2xl mx-auto mb-8">
