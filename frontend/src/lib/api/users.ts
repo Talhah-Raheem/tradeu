@@ -48,3 +48,36 @@ export async function getUserStats(userId: string) {
     return { data: null, error };
   }
 }
+
+// Update user profile
+export async function updateUserProfile(
+  userId: string,
+  updates: {
+    first_name?: string;
+    last_name?: string;
+    university?: string;
+    profile_image_url?: string;
+  }
+) {
+  try {
+    // Get current user to verify they're updating their own profile
+    const { data: { user: currentUser } } = await supabase.auth.getUser();
+    if (!currentUser || currentUser.id !== userId) {
+      throw new Error('Unauthorized: Can only update your own profile');
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update(updates)
+      .eq('user_id', userId)
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    return { data: data as User, error: null };
+  } catch (error) {
+    console.error('Error updating user profile:', error);
+    return { data: null, error };
+  }
+}

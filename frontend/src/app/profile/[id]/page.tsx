@@ -185,14 +185,27 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
 
               {/* Action Buttons */}
               <div className="flex flex-wrap gap-3">
-                <Button variant="primary" className="flex items-center space-x-2">
-                  <MessageCircle className="h-4 w-4" />
-                  <span>Contact Seller</span>
-                </Button>
-                <Button variant="outline" className="flex items-center space-x-2">
-                  <Flag className="h-4 w-4" />
-                  <span>Report User</span>
-                </Button>
+                {isOwnProfile ? (
+                  // Show edit button for own profile
+                  <Link href={`/profile/${id}/edit`}>
+                    <Button variant="primary" className="flex items-center space-x-2">
+                      <User className="h-4 w-4" />
+                      <span>Edit Profile</span>
+                    </Button>
+                  </Link>
+                ) : (
+                  // Show contact/report buttons for other users
+                  <>
+                    <Button variant="primary" className="flex items-center space-x-2">
+                      <MessageCircle className="h-4 w-4" />
+                      <span>Contact Seller</span>
+                    </Button>
+                    <Button variant="outline" className="flex items-center space-x-2">
+                      <Flag className="h-4 w-4" />
+                      <span>Report User</span>
+                    </Button>
+                  </>
+                )}
               </div>
             </div>
           </div>
