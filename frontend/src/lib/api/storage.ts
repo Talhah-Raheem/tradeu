@@ -5,16 +5,31 @@ const LISTING_IMAGES_BUCKET = 'listing-images';
 // Upload images for a listing
 export async function uploadListingImages(listingId: number, files: File[]) {
   try {
+    // TIMEOUT PROTECTION: Don't let bucket check hang forever
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Storage bucket check timeout')), 5000)
+    );
+
     // Check if bucket exists by trying to list it
-    const { error: bucketCheckError } = await supabase.storage
+    const bucketCheckPromise = supabase.storage
       .from(LISTING_IMAGES_BUCKET)
       .list('', { limit: 1 });
 
+    const result = await Promise.race([
+      bucketCheckPromise,
+      timeoutPromise
+    ]) as any;
+
+    const { error: bucketCheckError } = result;
+
     if (bucketCheckError) {
-      console.warn('Storage bucket not found. Skipping image upload. Create a bucket named "listing-images" in Supabase Storage.');
+      console.error('Storage bucket check failed:', bucketCheckError);
+      console.warn('Skipping image upload. Listing will be created without images.');
       // Return success but with no URLs - listing will be created without images
       return { data: [], error: null };
     }
+
+    console.log('Storage bucket found! Proceeding with image upload...');
 
     const uploadPromises = files.map(async (file, index) => {
       const fileExt = file.name.split('.').pop();
