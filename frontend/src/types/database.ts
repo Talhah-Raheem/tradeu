@@ -45,8 +45,9 @@ export interface Message {
   listing_id: number;
   sender_id: string;
   receiver_id: string;
-  message_text: string;
-  created_at: string;
+  message_content: string;
+  message_type: string;
+  timestamp: string;
   is_read: boolean;
   // Joined fields
   sender?: User;
