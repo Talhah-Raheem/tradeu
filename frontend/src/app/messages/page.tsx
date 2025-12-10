@@ -202,15 +202,25 @@ export default function MessagesPage() {
                       }`}
                     >
                       <div className="flex items-start space-x-3">
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0">
-                          <User className="h-6 w-6 text-blue-600" />
-                        </div>
-                        <div className="flex-1 min-w-0">
-                          <div className="font-semibold text-gray-900">
-                            {otherUser?.first_name ||
-                              otherUser?.email?.split('@')[0] ||
-                              'User'}
+                        <Link
+                          href={`/profile/${otherUser?.user_id}`}
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-100 to-blue-200 flex items-center justify-center flex-shrink-0 hover:ring-2 hover:ring-blue-400 transition cursor-pointer">
+                            <User className="h-6 w-6 text-blue-600" />
                           </div>
+                        </Link>
+                        <div className="flex-1 min-w-0">
+                          <Link
+                            href={`/profile/${otherUser?.user_id}`}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <div className="font-semibold text-gray-900 hover:text-blue-600 transition cursor-pointer">
+                              {otherUser?.first_name ||
+                                otherUser?.email?.split('@')[0] ||
+                                'User'}
+                            </div>
+                          </Link>
                           <div className="text-sm text-gray-600 truncate">{conv.listing?.title}</div>
                           <div className="text-xs text-gray-500 truncate mt-1">{conv.message_content}</div>
                         </div>
@@ -227,21 +237,23 @@ export default function MessagesPage() {
                 <>
                   {/* Conversation Header */}
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
-                    <div className="font-semibold text-gray-900">
-                      {selectedConvData ? (
-                        selectedConvData.sender_id === user.id
-                          ? selectedConvData.receiver?.first_name ||
-                            selectedConvData.receiver?.email?.split('@')[0] ||
-                            'User'
-                          : selectedConvData.sender?.first_name ||
-                            selectedConvData.sender?.email?.split('@')[0] ||
-                            'User'
-                      ) : (
-                        newConversationSeller?.first_name ||
-                        newConversationSeller?.email?.split('@')[0] ||
-                        'User'
-                      )}
-                    </div>
+                    <Link href={`/profile/${selectedConvData ? (selectedConvData.sender_id === user.id ? selectedConvData.receiver_id : selectedConvData.sender_id) : newConversationSeller?.user_id}`}>
+                      <div className="font-semibold text-gray-900 hover:text-blue-600 transition cursor-pointer inline-block">
+                        {selectedConvData ? (
+                          selectedConvData.sender_id === user.id
+                            ? selectedConvData.receiver?.first_name ||
+                              selectedConvData.receiver?.email?.split('@')[0] ||
+                              'User'
+                            : selectedConvData.sender?.first_name ||
+                              selectedConvData.sender?.email?.split('@')[0] ||
+                              'User'
+                        ) : (
+                          newConversationSeller?.first_name ||
+                          newConversationSeller?.email?.split('@')[0] ||
+                          'User'
+                        )}
+                      </div>
+                    </Link>
                     <Link href={`/listings/${selectedConversation.listingId}`}>
                       <div className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer">
                         Re: {selectedConvData?.listing?.title || newConversationListing?.title}
