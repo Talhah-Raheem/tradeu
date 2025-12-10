@@ -7,13 +7,29 @@ export async function sendMessage(listingId: number, receiverId: string, message
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) throw new Error('Not authenticated');
 
+    // RATE LIMITING: Prevent spam and cost abuse
+    // Check how many messages user sent in the last hour
+    const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000).toISOString();
+    const MESSAGE_LIMIT_PER_HOUR = 50; // Easy to change later
+
+    const { count } = await supabase
+      .from('messages')
+      .select('*', { count: 'exact', head: true })
+      .eq('sender_id', user.id)
+      .gte('timestamp', oneHourAgo);
+
+    if (count !== null && count >= MESSAGE_LIMIT_PER_HOUR) {
+      throw new Error(`Rate limit exceeded. Maximum ${MESSAGE_LIMIT_PER_HOUR} messages per hour.`);
+    }
+
     const { data, error } = await supabase
       .from('messages')
       .insert({
         listing_id: listingId,
         sender_id: user.id,
         receiver_id: receiverId,
-        message_text: messageText,
+        message_content: messageText,
+        message_type: 'text',
       })
       .select(`
         *,
@@ -48,7 +64,7 @@ export async function getConversationMessages(listingId: number, otherUserId: st
       `)
       .eq('listing_id', listingId)
       .or(`and(sender_id.eq.${user.id},receiver_id.eq.${otherUserId}),and(sender_id.eq.${otherUserId},receiver_id.eq.${user.id})`)
-      .order('created_at', { ascending: true });
+      .order('timestamp', { ascending: true });
 
     if (error) throw error;
 
@@ -82,7 +98,7 @@ export async function getUserConversations() {
         listing:listings(listing_id, title, images:listing_images(image_url))
       `)
       .or(`sender_id.eq.${user.id},receiver_id.eq.${user.id}`)
-      .order('created_at', { ascending: false });
+      .order('timestamp', { ascending: false });
 
     if (error) throw error;
 
@@ -109,59 +125,52 @@ export async function getUserConversations() {
 }
 
 // Subscribe to new messages in a conversation
-export function subscribeToConversation(
+export async function subscribeToConversation(
   listingId: number,
   otherUserId: string,
   callback: (message: Message) => void
 ) {
-  const { data: { user } } = supabase.auth.getUser();
+  const { data: { user } } = await supabase.auth.getUser();
 
-  user.then(({ user }) => {
-    if (!user) return;
+  if (!user) return null;
 
-    const subscription = supabase
-      .channel(`messages:${listingId}:${user.id}:${otherUserId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'messages',
-          filter: `listing_id=eq.${listingId}`,
-        },
-        async (payload) => {
-          const newMessage = payload.new as Message;
+  const subscription = supabase
+    .channel(`messages:${listingId}:${user.id}:${otherUserId}`)
+    .on(
+      'postgres_changes',
+      {
+        event: 'INSERT',
+        schema: 'public',
+        table: 'messages',
+        filter: `listing_id=eq.${listingId}`,
+      },
+      async (payload) => {
+        const newMessage = payload.new as Message;
 
-          // Only notify if the message is part of this conversation
-          if (
-            (newMessage.sender_id === user.id && newMessage.receiver_id === otherUserId) ||
-            (newMessage.sender_id === otherUserId && newMessage.receiver_id === user.id)
-          ) {
-            // Fetch full message with relations
-            const { data } = await supabase
-              .from('messages')
-              .select(`
-                *,
-                sender:users!messages_sender_id_fkey(user_id, first_name, last_name, profile_image_url),
-                receiver:users!messages_receiver_id_fkey(user_id, first_name, last_name, profile_image_url),
-                listing:listings(listing_id, title)
-              `)
-              .eq('message_id', newMessage.message_id)
-              .single();
+        // Only notify if the message is part of this conversation
+        if (
+          (newMessage.sender_id === user.id && newMessage.receiver_id === otherUserId) ||
+          (newMessage.sender_id === otherUserId && newMessage.receiver_id === user.id)
+        ) {
+          // Fetch full message with relations
+          const { data } = await supabase
+            .from('messages')
+            .select(`
+              *,
+              sender:users!messages_sender_id_fkey(user_id, first_name, last_name, profile_image_url),
+              receiver:users!messages_receiver_id_fkey(user_id, first_name, last_name, profile_image_url),
+              listing:listings(listing_id, title)
+            `)
+            .eq('message_id', newMessage.message_id)
+            .single();
 
-            if (data) {
-              callback(data as Message);
-            }
+          if (data) {
+            callback(data as Message);
           }
         }
-      )
-      .subscribe();
+      }
+    )
+    .subscribe();
 
-    return subscription;
-  });
-}
-
-// Unsubscribe from conversation updates
-export function unsubscribeFromConversation(listingId: number, otherUserId: string) {
-  supabase.removeChannel(`messages:${listingId}:${otherUserId}`);
+  return subscription;
 }

@@ -6,7 +6,9 @@ import Link from 'next/link';
 import { ArrowLeft, MessageCircle, User, Send } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserConversations, getConversationMessages, sendMessage, subscribeToConversation } from '@/lib/api/messages';
-import { Message } from '@/types/database';
+import { getListingById } from '@/lib/api/listings';
+import { getUserProfile } from '@/lib/api/users';
+import { Message, Listing, User as UserProfile } from '@/types/database';
 import Button from '@/components/Button';
 
 export default function MessagesPage() {
@@ -19,6 +21,9 @@ export default function MessagesPage() {
   const [newMessage, setNewMessage] = useState('');
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
+  // For new conversations that don't exist yet
+  const [newConversationListing, setNewConversationListing] = useState<Listing | null>(null);
+  const [newConversationSeller, setNewConversationSeller] = useState<UserProfile | null>(null);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -35,26 +40,41 @@ export default function MessagesPage() {
       const sellerParam = searchParams.get('seller');
 
       if (listingParam && sellerParam) {
+        const listingId = parseInt(listingParam);
         setSelectedConversation({
-          listingId: parseInt(listingParam),
+          listingId,
           otherUserId: sellerParam,
         });
-        loadConversationMessages(parseInt(listingParam), sellerParam);
+        loadConversationMessages(listingId, sellerParam);
+
+        // Fetch listing and seller info for new conversations
+        loadNewConversationInfo(listingId, sellerParam);
       }
     }
   }, [user, searchParams]);
 
   useEffect(() => {
-    if (selectedConversation) {
-      // Subscribe to new messages
-      const subscription = subscribeToConversation(
+    if (!selectedConversation) return;
+
+    let subscription: any;
+
+    // Subscribe to new messages
+    (async () => {
+      subscription = await subscribeToConversation(
         selectedConversation.listingId,
         selectedConversation.otherUserId,
         (newMsg) => {
           setMessages((prev) => [...prev, newMsg]);
         }
       );
-    }
+    })();
+
+    // Cleanup on unmount
+    return () => {
+      if (subscription) {
+        subscription.unsubscribe();
+      }
+    };
   }, [selectedConversation]);
 
   const loadConversations = async () => {
@@ -73,6 +93,21 @@ export default function MessagesPage() {
     }
   };
 
+  const loadNewConversationInfo = async (listingId: number, sellerId: string) => {
+    // Fetch listing and seller info for new conversations
+    const [listingResult, sellerResult] = await Promise.all([
+      getListingById(listingId.toString()),
+      getUserProfile(sellerId)
+    ]);
+
+    if (listingResult.data) {
+      setNewConversationListing(listingResult.data);
+    }
+    if (sellerResult.data) {
+      setNewConversationSeller(sellerResult.data);
+    }
+  };
+
   const handleSelectConversation = (conv: Message) => {
     const otherUserId = conv.sender_id === user?.id ? conv.receiver_id : conv.sender_id;
     setSelectedConversation({
@@ -80,6 +115,9 @@ export default function MessagesPage() {
       otherUserId,
     });
     loadConversationMessages(conv.listing_id, otherUserId);
+    // Clear new conversation state when selecting an existing one
+    setNewConversationListing(null);
+    setNewConversationSeller(null);
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -93,7 +131,11 @@ export default function MessagesPage() {
       newMessage
     );
 
-    if (!error && data) {
+    if (error) {
+      // Show user-friendly error message
+      const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
+      alert(errorMessage);
+    } else if (data) {
       setMessages([...messages, data]);
       setNewMessage('');
     }
@@ -170,7 +212,7 @@ export default function MessagesPage() {
                               'User'}
                           </div>
                           <div className="text-sm text-gray-600 truncate">{conv.listing?.title}</div>
-                          <div className="text-xs text-gray-500 truncate mt-1">{conv.message_text}</div>
+                          <div className="text-xs text-gray-500 truncate mt-1">{conv.message_content}</div>
                         </div>
                       </div>
                     </div>
@@ -181,45 +223,61 @@ export default function MessagesPage() {
 
             {/* Messages Area */}
             <div className="flex-1 flex flex-col">
-              {selectedConversation && selectedConvData ? (
+              {selectedConversation && (selectedConvData || (newConversationListing && newConversationSeller)) ? (
                 <>
                   {/* Conversation Header */}
                   <div className="p-4 border-b border-gray-200 bg-gray-50">
                     <div className="font-semibold text-gray-900">
-                      {selectedConvData.sender_id === user.id
-                        ? selectedConvData.receiver?.first_name ||
-                          selectedConvData.receiver?.email?.split('@')[0] ||
-                          'User'
-                        : selectedConvData.sender?.first_name ||
-                          selectedConvData.sender?.email?.split('@')[0] ||
-                          'User'}
+                      {selectedConvData ? (
+                        selectedConvData.sender_id === user.id
+                          ? selectedConvData.receiver?.first_name ||
+                            selectedConvData.receiver?.email?.split('@')[0] ||
+                            'User'
+                          : selectedConvData.sender?.first_name ||
+                            selectedConvData.sender?.email?.split('@')[0] ||
+                            'User'
+                      ) : (
+                        newConversationSeller?.first_name ||
+                        newConversationSeller?.email?.split('@')[0] ||
+                        'User'
+                      )}
                     </div>
                     <Link href={`/listings/${selectedConversation.listingId}`}>
                       <div className="text-sm text-blue-600 hover:text-blue-700 cursor-pointer">
-                        Re: {selectedConvData.listing?.title}
+                        Re: {selectedConvData?.listing?.title || newConversationListing?.title}
                       </div>
                     </Link>
                   </div>
 
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-3">
-                    {messages.map((msg) => {
-                      const isOwnMessage = msg.sender_id === user.id;
-                      return (
-                        <div key={msg.message_id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                          <div
-                            className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                              isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-900'
-                            }`}
-                          >
-                            <p>{msg.message_text}</p>
-                            <p className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
-                              {new Date(msg.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </p>
-                          </div>
+                    {messages.length === 0 ? (
+                      <div className="flex items-center justify-center h-full text-gray-500">
+                        <div className="text-center">
+                          <MessageCircle className="h-12 w-12 text-gray-400 mx-auto mb-3" />
+                          <p>No messages yet</p>
+                          <p className="text-sm mt-2">Send a message to start the conversation</p>
                         </div>
-                      );
-                    })}
+                      </div>
+                    ) : (
+                      messages.map((msg) => {
+                        const isOwnMessage = msg.sender_id === user.id;
+                        return (
+                          <div key={msg.message_id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                            <div
+                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-900'
+                              }`}
+                            >
+                              <p>{msg.message_content}</p>
+                              <p className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                              </p>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
                   </div>
 
                   {/* Message Input */}

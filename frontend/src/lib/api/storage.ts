@@ -5,16 +5,31 @@ const LISTING_IMAGES_BUCKET = 'listing-images';
 // Upload images for a listing
 export async function uploadListingImages(listingId: number, files: File[]) {
   try {
+    // TIMEOUT PROTECTION: Don't let bucket check hang forever
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Storage bucket check timeout')), 5000)
+    );
+
     // Check if bucket exists by trying to list it
-    const { error: bucketCheckError } = await supabase.storage
+    const bucketCheckPromise = supabase.storage
       .from(LISTING_IMAGES_BUCKET)
       .list('', { limit: 1 });
 
+    const result = await Promise.race([
+      bucketCheckPromise,
+      timeoutPromise
+    ]) as any;
+
+    const { error: bucketCheckError } = result;
+
     if (bucketCheckError) {
-      console.warn('Storage bucket not found. Skipping image upload. Create a bucket named "listing-images" in Supabase Storage.');
+      console.error('Storage bucket check failed:', bucketCheckError);
+      console.warn('Skipping image upload. Listing will be created without images.');
       // Return success but with no URLs - listing will be created without images
       return { data: [], error: null };
     }
+
+    console.log('Storage bucket found! Proceeding with image upload...');
 
     const uploadPromises = files.map(async (file, index) => {
       const fileExt = file.name.split('.').pop();
@@ -132,6 +147,88 @@ export async function deleteListingImage(imageId: number) {
     return { error: null };
   } catch (error) {
     console.error('Error deleting image:', error);
+    return { error };
+  }
+}
+
+// Upload profile image for a user
+const PROFILE_IMAGES_BUCKET = 'profile-images';
+
+export async function uploadProfileImage(userId: string, file: File) {
+  try {
+    // TIMEOUT PROTECTION: Don't let bucket check hang forever
+    const timeoutPromise = new Promise((_, reject) =>
+      setTimeout(() => reject(new Error('Storage bucket check timeout')), 5000)
+    );
+
+    // Check if bucket exists
+    const bucketCheckPromise = supabase.storage
+      .from(PROFILE_IMAGES_BUCKET)
+      .list('', { limit: 1 });
+
+    const result = await Promise.race([
+      bucketCheckPromise,
+      timeoutPromise
+    ]) as any;
+
+    const { error: bucketCheckError } = result;
+
+    if (bucketCheckError) {
+      console.error('Profile images bucket check failed:', bucketCheckError);
+      console.warn('To enable profile images: Create a public bucket named "profile-images" in Supabase Storage.');
+      return { data: null, error: bucketCheckError };
+    }
+
+    // Delete old profile image if exists
+    const oldImagePath = `${userId}/avatar`;
+    await supabase.storage
+      .from(PROFILE_IMAGES_BUCKET)
+      .remove([`${oldImagePath}.jpg`, `${oldImagePath}.png`, `${oldImagePath}.jpeg`, `${oldImagePath}.webp`]);
+
+    // Upload new image
+    const fileExt = file.name.split('.').pop();
+    const fileName = `${userId}/avatar.${fileExt}`;
+
+    const { error: uploadError } = await supabase.storage
+      .from(PROFILE_IMAGES_BUCKET)
+      .upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: true,
+      });
+
+    if (uploadError) throw uploadError;
+
+    // Get public URL
+    const { data: { publicUrl } } = supabase.storage
+      .from(PROFILE_IMAGES_BUCKET)
+      .getPublicUrl(fileName);
+
+    return { data: publicUrl, error: null };
+  } catch (error) {
+    console.error('Error uploading profile image:', error);
+    return { data: null, error };
+  }
+}
+
+// Delete profile image
+export async function deleteProfileImage(userId: string) {
+  try {
+    const filePaths = [
+      `${userId}/avatar.jpg`,
+      `${userId}/avatar.png`,
+      `${userId}/avatar.jpeg`,
+      `${userId}/avatar.webp`
+    ];
+
+    const { error } = await supabase.storage
+      .from(PROFILE_IMAGES_BUCKET)
+      .remove(filePaths);
+
+    if (error) throw error;
+
+    return { error: null };
+  } catch (error) {
+    console.error('Error deleting profile image:', error);
     return { error };
   }
 }

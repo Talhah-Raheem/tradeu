@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { BookOpen, Plus, User, ChevronDown, LogOut } from 'lucide-react';
+import { BookOpen, Plus, User, ChevronDown, LogOut, MessageCircle } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRef, useState, useEffect } from 'react';
 
@@ -65,6 +65,11 @@ const Header = () => {
             <div className="flex items-center space-x-3">
               {user ? (
                 <>
+                  <Link href="/messages">
+                    <button className="text-gray-700 hover:text-soft-blue-600 transition-colors p-2 rounded-full hover:bg-soft-blue-50 relative">
+                      <MessageCircle className="h-5 w-5" />
+                    </button>
+                  </Link>
                   <Link href="/listings/create">
                     <button className="bg-gradient-to-r from-soft-blue-500 to-soft-blue-600 text-white px-5 py-2 rounded-full hover:shadow-lg transition-all duration-200 flex items-center font-semibold text-sm">
                       <Plus className="h-4 w-4 mr-1.5" />
