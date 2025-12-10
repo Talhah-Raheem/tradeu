@@ -21,6 +21,16 @@ export default function ListingsPage() {
   const categories = ['Textbooks', 'Furniture', 'Electronics', 'Clothing', 'Sports', 'Other'];
   const conditions = ['New', 'Like New', 'Good', 'Fair'];
 
+  // Category name to ID mapping - Verified from Supabase database
+  const CATEGORY_MAP: Record<string, number> = {
+    'Electronics': 1,
+    'Textbooks': 2,
+    'Furniture': 3,
+    'Clothing': 4,
+    'Sports': 5,
+    'Other': 6,
+  };
+
   useEffect(() => {
     loadListings();
   }, [searchTerm, selectedCategory]);
@@ -31,7 +41,10 @@ export default function ListingsPage() {
     try {
       const params: any = { limit: 50 };
       if (searchTerm) params.search = searchTerm;
-      if (selectedCategory) params.category = selectedCategory;
+      if (selectedCategory) {
+        const categoryId = CATEGORY_MAP[selectedCategory];
+        if (categoryId) params.categoryId = categoryId;
+      }
 
       const { data, error } = await getListings(params);
       if (error) {
