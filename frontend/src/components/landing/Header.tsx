@@ -6,7 +6,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { useRef, useState, useEffect } from 'react';
 
 const Header = () => {
-  const { user, signOut } = useAuth();
+  const { user, userProfile, signOut } = useAuth();
   const [isProfileDropdownOpen, setIsProfileDropdownOpen] = useState(false);
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -81,9 +81,17 @@ const Header = () => {
                       onClick={() => setIsProfileDropdownOpen(!isProfileDropdownOpen)}
                       className="flex items-center space-x-2 text-gray-700 hover:text-gray-900 transition-colors"
                     >
-                      <div className="w-9 h-9 rounded-full bg-gradient-to-br from-lilac-300 to-lilac-400 flex items-center justify-center border-2 border-white shadow-md">
-                        <User className="h-4 w-4 text-white" />
-                      </div>
+                      {userProfile?.profile_image_url ? (
+                        <img
+                          src={userProfile.profile_image_url}
+                          alt="Profile"
+                          className="w-9 h-9 rounded-full border-2 border-white shadow-md object-cover"
+                        />
+                      ) : (
+                        <div className="w-9 h-9 rounded-full bg-gradient-to-br from-lilac-300 to-lilac-400 flex items-center justify-center border-2 border-white shadow-md">
+                          <User className="h-4 w-4 text-white" />
+                        </div>
+                      )}
                       <ChevronDown className={`h-4 w-4 text-gray-400 transition-transform ${isProfileDropdownOpen ? 'rotate-180' : ''}`} />
                     </button>
                     {isProfileDropdownOpen && (

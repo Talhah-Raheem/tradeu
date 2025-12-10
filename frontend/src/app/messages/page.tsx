@@ -136,7 +136,7 @@ export default function MessagesPage() {
       const errorMessage = error instanceof Error ? error.message : 'Failed to send message';
       alert(errorMessage);
     } else if (data) {
-      setMessages([...messages, data]);
+      // Message will be added by real-time subscription
       setNewMessage('');
     }
     setSending(false);
@@ -260,23 +260,54 @@ export default function MessagesPage() {
                         </div>
                       </div>
                     ) : (
-                      messages.map((msg) => {
-                        const isOwnMessage = msg.sender_id === user.id;
-                        return (
-                          <div key={msg.message_id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
-                            <div
-                              className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
-                                isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-900'
-                              }`}
-                            >
-                              <p>{msg.message_content}</p>
-                              <p className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
-                                {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                              </p>
+                      <>
+                        {/* Listing Context Card */}
+                        {(selectedConvData?.listing || newConversationListing) && (
+                          <div className="bg-blue-50 border-2 border-blue-200 rounded-lg p-3 mb-4">
+                            <div className="flex items-center space-x-3">
+                              {(selectedConvData?.listing?.images?.[0]?.image_url || newConversationListing?.images?.[0]?.image_url) && (
+                                <img
+                                  src={selectedConvData?.listing?.images?.[0]?.image_url || newConversationListing?.images?.[0]?.image_url}
+                                  alt="Listing"
+                                  className="w-16 h-16 rounded-lg object-cover"
+                                />
+                              )}
+                              <div className="flex-1">
+                                <div className="text-sm text-gray-600 mb-1">Discussing:</div>
+                                <Link href={`/listings/${selectedConversation.listingId}`}>
+                                  <div className="font-semibold text-blue-600 hover:text-blue-700 cursor-pointer">
+                                    {selectedConvData?.listing?.title || newConversationListing?.title}
+                                  </div>
+                                </Link>
+                                {(selectedConvData?.listing?.price || newConversationListing?.price) && (
+                                  <div className="text-sm text-gray-700 font-semibold mt-1">
+                                    ${selectedConvData?.listing?.price || newConversationListing?.price}
+                                  </div>
+                                )}
+                              </div>
                             </div>
                           </div>
-                        );
-                      })
+                        )}
+
+                        {/* Regular Messages */}
+                        {messages.map((msg) => {
+                          const isOwnMessage = msg.sender_id === user.id;
+                          return (
+                            <div key={msg.message_id} className={`flex ${isOwnMessage ? 'justify-end' : 'justify-start'}`}>
+                              <div
+                                className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                                  isOwnMessage ? 'bg-blue-600 text-white' : 'bg-gray-200 text-gray-900'
+                                }`}
+                              >
+                                <p>{msg.message_content}</p>
+                                <p className={`text-xs mt-1 ${isOwnMessage ? 'text-blue-100' : 'text-gray-500'}`}>
+                                  {new Date(msg.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                </p>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </>
                     )}
                   </div>
 
