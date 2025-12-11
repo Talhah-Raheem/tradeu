@@ -135,7 +135,8 @@ export async function getListingById(listingId: number | string | bigint) {
 // Get listings by seller ID
 export async function getListingsBySeller(sellerId: string, status?: Listing['status']) {
   try {
-    let query = supabase
+    // Fetch all listings for this seller (without status filter initially)
+    const { data, error } = await supabase
       .from('listings')
       .select(`
         *,
@@ -145,15 +146,40 @@ export async function getListingsBySeller(sellerId: string, status?: Listing['st
       .eq('user_id', sellerId)
       .order('created_at', { ascending: false });
 
-    if (status) {
-      query = query.eq('status', status);
-    }
-
-    const { data, error } = await query;
-
     if (error) throw error;
 
-    return { data: data as Listing[], error: null };
+    if (!data) {
+      return { data: [], error: null };
+    }
+
+    // For each listing, check if it has a completed order
+    // This ensures consistency with getListingById() behavior
+    const listingsWithStatus = await Promise.all(
+      data.map(async (listing) => {
+        const { data: orderData } = await supabase
+          .from('orders')
+          .select('order_id')
+          .eq('listing_id', listing.listing_id)
+          .eq('status', 'completed')
+          .limit(1)
+          .maybeSingle();
+
+        // If listing has a completed order, force status to 'sold'
+        // This is the source of truth, regardless of what the status column says
+        if (orderData) {
+          listing.status = 'sold';
+        }
+
+        return listing;
+      })
+    );
+
+    // Now filter by the requested status
+    const filtered = status
+      ? listingsWithStatus.filter(l => l.status === status)
+      : listingsWithStatus;
+
+    return { data: filtered as Listing[], error: null };
   } catch (error) {
     const err = error as { message?: string; details?: string; hint?: string };
     console.error('Error fetching seller listings:', err?.message || error);

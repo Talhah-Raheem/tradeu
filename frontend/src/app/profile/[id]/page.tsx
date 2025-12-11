@@ -195,8 +195,16 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
                 </div>
               </div>
 
-              <div className="flex items-center space-x-2 mb-6">
+              <div className="flex items-center space-x-2 mb-4">
                 <StarRating rating={user.rating} size="lg" showNumber reviewCount={user.reviewCount} />
+              </div>
+
+              {/* Response Rate */}
+              <div className="flex items-center space-x-2 mb-6">
+                <MessageCircle className="h-5 w-5 text-purple-600" />
+                <span className="text-gray-700 font-medium">
+                  {user.stats.responseRate}% Response Rate
+                </span>
               </div>
 
               {/* Action Buttons */}
@@ -340,33 +348,6 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           </section>
         )}
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="bg-white rounded-xl border-2 border-gray-200 p-6 text-center hover:border-blue-300 transition">
-            <div className="bg-blue-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <Package className="h-6 w-6 text-blue-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{user.stats.itemsSold}</div>
-            <div className="text-gray-600 text-sm">Items Sold</div>
-          </div>
-
-          <div className="bg-white rounded-xl border-2 border-gray-200 p-6 text-center hover:border-blue-300 transition">
-            <div className="bg-green-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <TrendingUp className="h-6 w-6 text-green-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{user.stats.activeListings}</div>
-            <div className="text-gray-600 text-sm">Active Listings</div>
-          </div>
-
-          <div className="bg-white rounded-xl border-2 border-gray-200 p-6 text-center hover:border-blue-300 transition">
-            <div className="bg-purple-100 w-12 h-12 rounded-full flex items-center justify-center mx-auto mb-3">
-              <MessageCircle className="h-6 w-6 text-purple-600" />
-            </div>
-            <div className="text-3xl font-bold text-gray-900 mb-1">{user.stats.responseRate}%</div>
-            <div className="text-gray-600 text-sm">Response Rate</div>
-          </div>
-        </div>
-
         {/* Active Listings Section */}
         <section className="mb-12">
           <div className="flex justify-between items-center mb-6">
@@ -459,9 +440,61 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
           )}
 
           {activeTab === 'sold' && (
-            <div className="bg-gray-50 border-2 border-dashed border-gray-300 rounded-xl p-12 text-center">
-              <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <p className="text-gray-600">Sold items are not displayed publicly</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+              {displayListings.length > 0 ? (
+                displayListings.map((listing) => (
+                  <Link key={listing.listing_id} href={`/listings/${listing.listing_id}`}>
+                    <div className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:shadow-2xl hover:border-blue-300 transition-all hover:-translate-y-2 cursor-pointer group">
+                      <div className="bg-gradient-to-br from-gray-100 to-gray-200 h-48 rounded-lg mb-4 flex items-center justify-center overflow-hidden group-hover:scale-110 transition-transform">
+                        {listing.images && listing.images.length > 0 ? (
+                          <img
+                            src={listing.images[0].image_url}
+                            alt={listing.title}
+                            className="w-full h-full object-cover"
+                          />
+                        ) : (
+                          <div className="text-6xl">📦</div>
+                        )}
+                      </div>
+                      <div className="space-y-2">
+                        <div className="flex items-center justify-between">
+                          <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            {listing.category?.category_name}
+                          </span>
+                          <span className="text-xs font-semibold text-gray-600 bg-gray-100 px-2 py-1 rounded">
+                            Sold
+                          </span>
+                        </div>
+                        <h4 className="font-bold text-gray-900 text-lg group-hover:text-blue-600 transition">
+                          {listing.title}
+                        </h4>
+                        <p className="text-gray-600 text-sm line-clamp-2">{listing.description}</p>
+
+                        <div className="pt-3 border-t border-gray-100">
+                          <div className="flex justify-between items-center mb-2">
+                            <span className="text-2xl font-bold text-blue-600">${listing.price}</span>
+                          </div>
+                          <div className="flex items-center justify-between text-xs text-gray-500">
+                            <div className="flex items-center">
+                              <MapPin className="h-3 w-3 mr-1" />
+                              {listing.location}
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar className="h-3 w-3 mr-1" />
+                              {new Date(listing.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </Link>
+                ))
+              ) : (
+                <div className="col-span-full text-center py-12">
+                  <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <p className="text-gray-600">No sold listings</p>
+                </div>
+              )}
             </div>
           )}
         </section>

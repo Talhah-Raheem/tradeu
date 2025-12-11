@@ -1,5 +1,6 @@
 import { supabase } from '@/lib/supabase';
 import { User } from '@/types/database';
+import { getListingsBySeller } from './listings';
 
 // Get user profile by ID
 export async function getUserProfile(userId: string) {
@@ -22,23 +23,17 @@ export async function getUserProfile(userId: string) {
 // Get user stats (listings count, sold count, etc.)
 export async function getUserStats(userId: string) {
   try {
-    const [activeListingsResult, soldListingsResult] = await Promise.all([
-      supabase
-        .from('listings')
-        .select('listing_id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'active'),
-      supabase
-        .from('listings')
-        .select('listing_id', { count: 'exact', head: true })
-        .eq('user_id', userId)
-        .eq('status', 'sold'),
+    // Use getListingsBySeller which checks orders table for accurate counts
+    // This ensures consistency with what's actually displayed in the tabs
+    const [activeResult, soldResult] = await Promise.all([
+      getListingsBySeller(userId, 'active'),
+      getListingsBySeller(userId, 'sold'),
     ]);
 
     return {
       data: {
-        activeListings: activeListingsResult.count || 0,
-        itemsSold: soldListingsResult.count || 0,
+        activeListings: activeResult.data?.length || 0,
+        itemsSold: soldResult.data?.length || 0,
         responseRate: 95, // This would need to be calculated from messages
       },
       error: null,

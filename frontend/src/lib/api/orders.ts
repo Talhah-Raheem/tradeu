@@ -43,6 +43,7 @@ export async function createOrder(listingId: number) {
 
     if (statusError) {
       console.error('Error marking listing as sold:', statusError);
+      console.warn('Order created successfully but listing status column may not be updated. Orders table is the source of truth for sold status.');
     }
 
     return { data: order as Order, error: null };
