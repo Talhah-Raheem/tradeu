@@ -30,6 +30,8 @@ export async function getListings(filters?: {
   limit?: number;
 }) {
   try {
+    const soldListingIdsPromise = getSoldListingIds();
+
     let query = supabase
       .from('listings')
       .select(`
@@ -60,11 +62,19 @@ export async function getListings(filters?: {
       query = query.limit(filters.limit);
     }
 
-    const { data, error } = await query;
+    const [{ data, error }, soldListingIds] = await Promise.all([
+      query,
+      soldListingIdsPromise,
+    ]);
 
     if (error) throw error;
 
-    return { data: data as Listing[], error: null };
+    // Exclude listings that have already been purchased (orders marked completed)
+    const filtered = (data as Listing[] | null)?.filter(
+      (listing) => !soldListingIds.has(listing.listing_id)
+    ) ?? [];
+
+    return { data: filtered, error: null };
   } catch (error) {
     const err = error as { message?: string; details?: string; hint?: string };
     console.error('Error fetching listings:', err?.message || error);
@@ -95,6 +105,21 @@ export async function getListingById(listingId: number | string | bigint) {
       .single();
 
     if (error) throw error;
+
+    // If the listing has a completed order, treat as sold
+    const { data: orderData } = await supabase
+      .from('orders')
+      .select('order_id')
+      .eq('listing_id', normalizedId)
+      .eq('status', 'completed')
+      .limit(1)
+      .maybeSingle();
+
+    if (orderData) {
+      const soldListing = data as Listing;
+      soldListing.status = 'sold';
+      return { data: soldListing, error: null };
+    }
 
     return { data: data as Listing, error: null };
   } catch (error) {
@@ -260,4 +285,21 @@ export async function deleteListing(listingId: number) {
 // Mark listing as sold
 export async function markListingAsSold(listingId: number) {
   return updateListing(listingId, { status: 'sold' });
+}
+
+// Helper: fetch listing IDs that already have a completed order
+async function getSoldListingIds(): Promise<Set<number>> {
+  try {
+    const { data, error } = await supabase
+      .from('orders')
+      .select('listing_id')
+      .eq('status', 'completed');
+
+    if (error) throw error;
+
+    return new Set((data ?? []).map((row) => row.listing_id));
+  } catch (error) {
+    console.error('Error fetching sold listing ids:', error);
+    return new Set();
+  }
 }

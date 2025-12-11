@@ -2,15 +2,16 @@
 
 import { useState, useEffect, use } from 'react';
 import Link from 'next/link';
-import { User, MapPin, Calendar, Package, TrendingUp, MessageCircle, Flag, Star } from 'lucide-react';
+import { User, MapPin, Calendar, Package, TrendingUp, MessageCircle, Flag, Star, ShoppingBag } from 'lucide-react';
 import { useAuth } from '@/contexts/AuthContext';
 import { getUserProfile, getUserStats } from '@/lib/api/users';
 import { getListingsBySeller } from '@/lib/api/listings';
-import { User as UserType, Listing } from '@/types/database';
+import { User as UserType, Listing, Order } from '@/types/database';
 import StarRating from '@/components/StarRating';
 import ProductCard from '@/components/ProductCard';
 import ReviewCard from '@/components/ReviewCard';
 import Button from '@/components/Button';
+import { getUserOrders } from '@/lib/api/orders';
 
 export default function ProfilePage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -19,6 +20,8 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   const [profileUser, setProfileUser] = useState<UserType | null>(null);
   const [stats, setStats] = useState({ activeListings: 0, itemsSold: 0, responseRate: 95 });
   const [listings, setListings] = useState<Listing[]>([]);
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [ordersLoading, setOrdersLoading] = useState(true);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -49,6 +52,19 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
         setListings(listingsResult.data);
       }
 
+      // Only fetch buyer orders for your own profile
+      if (currentUser?.id === id) {
+        setOrdersLoading(true);
+        const { data: ordersData } = await getUserOrders(id);
+        if (ordersData) {
+          setOrders(ordersData);
+        }
+        setOrdersLoading(false);
+      } else {
+        setOrders([]);
+        setOrdersLoading(false);
+      }
+
       setLoading(false);
     };
 
@@ -57,7 +73,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
     return () => {
       isMounted = false;
     };
-  }, [id, activeTab]);
+  }, [id, activeTab, currentUser?.id]);
 
   if (loading || !profileUser) {
     return (
@@ -210,6 +226,119 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
             </div>
           </div>
         </div>
+
+        {/* My Orders - only visible on own profile */}
+        {isOwnProfile && (
+          <section className="mb-12">
+            <div className="flex items-center space-x-3 mb-4">
+              <ShoppingBag className="h-6 w-6 text-blue-600" />
+              <h2 className="text-2xl font-bold text-gray-900">My Orders</h2>
+            </div>
+
+            {ordersLoading ? (
+              <div className="bg-white rounded-2xl shadow border-2 border-gray-100 p-6 animate-pulse">
+                <div className="h-6 bg-gray-200 rounded w-1/3 mb-4"></div>
+                <div className="space-y-3">
+                  <div className="h-16 bg-gray-200 rounded"></div>
+                  <div className="h-16 bg-gray-200 rounded"></div>
+                </div>
+              </div>
+            ) : orders.length === 0 ? (
+              <div className="bg-white rounded-2xl shadow-xl border-2 border-gray-100 p-8 text-center">
+                <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                <h3 className="text-xl font-bold text-gray-900 mb-2">No orders yet</h3>
+                <p className="text-gray-600 mb-6">Start shopping to see your orders here</p>
+                <Link href="/listings">
+                  <button className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition font-medium">
+                    Browse Listings
+                  </button>
+                </Link>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {orders.map((order) => {
+                  const firstImage = order.listing?.images && order.listing.images.length > 0
+                    ? order.listing.images[0].image_url
+                    : null;
+
+                  const statusClasses =
+                    order.status === 'completed'
+                      ? 'text-green-600'
+                      : order.status === 'pending'
+                        ? 'text-yellow-600'
+                        : 'text-red-600';
+
+                  return (
+                    <div key={order.order_id} className="bg-white rounded-xl shadow border-2 border-gray-200 p-6 hover:shadow-lg transition">
+                      <div className="flex items-start space-x-4">
+                        {/* Image */}
+                        <Link href={`/listings/${order.listing_id}`}>
+                          {firstImage ? (
+                            <img
+                              src={firstImage}
+                              alt={order.listing?.title}
+                              className="w-24 h-24 object-cover rounded-lg cursor-pointer hover:opacity-80 transition"
+                            />
+                          ) : (
+                            <div className="w-24 h-24 bg-gradient-to-br from-gray-100 to-gray-200 rounded-lg flex items-center justify-center text-3xl">
+                              📦
+                            </div>
+                          )}
+                        </Link>
+
+                        {/* Order Details */}
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <Link href={`/listings/${order.listing_id}`}>
+                                <h3 className="font-bold text-gray-900 text-lg hover:text-blue-600 transition cursor-pointer">
+                                  {order.listing?.title}
+                                </h3>
+                              </Link>
+                              <div className="flex items-center space-x-4 text-sm text-gray-600 mt-1">
+                                <div className="flex items-center">
+                                  <User className="h-4 w-4 mr-1" />
+                                  <Link href={`/profile/${order.seller_id}`}>
+                                    <span className="hover:text-blue-600 transition">
+                                      {order.seller?.first_name || order.seller?.email?.split('@')[0] || 'Seller'}
+                                    </span>
+                                  </Link>
+                                </div>
+                                <div className="flex items-center">
+                                  <Calendar className="h-4 w-4 mr-1" />
+                                  {new Date(order.created_at).toLocaleDateString()}
+                                </div>
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-blue-600">${order.total_price}</div>
+                              <div className={`text-sm font-medium mt-1 ${statusClasses}`}>
+                                {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
+                              </div>
+                            </div>
+                          </div>
+
+                          <div className="flex space-x-3 mt-4">
+                            <Link href={`/listings/${order.listing_id}`}>
+                              <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                                View Item
+                              </button>
+                            </Link>
+                            <Link href={`/profile/${order.seller_id}`}>
+                              <button className="text-blue-600 hover:text-blue-700 font-medium text-sm">
+                                View Seller
+                              </button>
+                            </Link>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+        )}
 
         {/* Stats Row */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">

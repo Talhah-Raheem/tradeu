@@ -1,6 +1,5 @@
 import { supabase } from '@/lib/supabase';
 import { Order } from '@/types/database';
-import { markListingAsSold } from './listings';
 
 // Create a new order (fake checkout)
 export async function createOrder(listingId: number) {
@@ -36,8 +35,15 @@ export async function createOrder(listingId: number) {
 
     if (orderError) throw orderError;
 
-    // Mark listing as sold
-    await markListingAsSold(listingId);
+    // Mark listing as sold (bypass seller ownership since buyer is performing checkout)
+    const { error: statusError } = await supabase
+      .from('listings')
+      .update({ status: 'sold' })
+      .eq('listing_id', listingId);
+
+    if (statusError) {
+      console.error('Error marking listing as sold:', statusError);
+    }
 
     return { data: order as Order, error: null };
   } catch (error) {
