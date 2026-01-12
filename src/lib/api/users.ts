@@ -76,3 +76,23 @@ export async function updateUserProfile(
     return { data: null, error };
   }
 }
+
+/**
+ * Update user password (used during password reset flow)
+ * @param newPassword - The new password to set
+ * @returns Success/error response
+ */
+export async function updatePassword(newPassword: string) {
+  try {
+    const { data, error } = await supabase.auth.updateUser({
+      password: newPassword
+    });
+
+    if (error) throw error;
+
+    return { data, error: null };
+  } catch (error) {
+    console.error('Error updating password:', error);
+    return { data: null, error };
+  }
+}

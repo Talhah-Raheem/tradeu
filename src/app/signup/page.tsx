@@ -121,7 +121,13 @@ export default function SignupPage() {
       });
 
       if (error) {
-        setErrors({ email: error.message || 'This email is already registered' });
+        // Handle specific error cases
+        const errorMessage = error.message.toLowerCase();
+        if (errorMessage.includes('already') || errorMessage.includes('exists') || errorMessage.includes('registered')) {
+          setErrors({ email: 'This email is already in use' });
+        } else {
+          setErrors({ email: error.message || 'Sign up failed. Please try again.' });
+        }
         return;
       }
 
