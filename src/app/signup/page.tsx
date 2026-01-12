@@ -14,6 +14,7 @@ export default function SignupPage() {
     name: '',
     email: '',
     university: '',
+    customUniversity: '',
     password: '',
     confirmPassword: ''
   });
@@ -21,6 +22,7 @@ export default function SignupPage() {
     name?: string;
     email?: string;
     university?: string;
+    customUniversity?: string;
     password?: string;
     confirmPassword?: string;
   }>({});
@@ -63,6 +65,12 @@ export default function SignupPage() {
     // University validation
     if (!formData.university) {
       newErrors.university = 'Please select your university';
+    } else if (formData.university === 'Other') {
+      if (!formData.customUniversity.trim()) {
+        newErrors.customUniversity = 'Please enter your university name';
+      } else if (formData.customUniversity.trim().length < 2) {
+        newErrors.customUniversity = 'University name must be at least 2 characters';
+      }
     }
 
     // Password validation
@@ -96,6 +104,10 @@ export default function SignupPage() {
       const { supabase } = await import('@/lib/supabase');
 
       // Sign up with Supabase Auth
+      const universityValue = formData.university === 'Other'
+        ? formData.customUniversity
+        : formData.university;
+
       const { data, error } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -103,7 +115,7 @@ export default function SignupPage() {
           data: {
             first_name: formData.name.split(' ')[0],
             last_name: formData.name.split(' ').slice(1).join(' ') || '',
-            university: formData.university,
+            university: universityValue,
           },
         },
       });
@@ -202,6 +214,19 @@ export default function SignupPage() {
             </p>
           )}
         </div>
+
+        {formData.university === 'Other' && (
+          <Input
+            type="text"
+            label="Enter Your University Name"
+            placeholder="e.g., Arizona State University"
+            icon={<Building2 className="h-5 w-5" />}
+            value={formData.customUniversity}
+            onChange={(e) => setFormData({ ...formData, customUniversity: e.target.value })}
+            error={errors.customUniversity}
+            required
+          />
+        )}
 
         <Input
           type="password"
