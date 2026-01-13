@@ -174,3 +174,53 @@ export async function subscribeToConversation(
 
   return subscription;
 }
+
+// Calculate user's response rate based on conversation replies
+export async function calculateResponseRate(userId: string) {
+  try {
+    // Get all messages where user was the receiver
+    const { data: receivedMessages, error: receivedError } = await supabase
+      .from('messages')
+      .select('listing_id, sender_id')
+      .eq('receiver_id', userId);
+
+    if (receivedError) throw receivedError;
+
+    // No incoming messages - return null (will show "N/A")
+    if (!receivedMessages || receivedMessages.length === 0) {
+      return { data: null, error: null };
+    }
+
+    // Group by unique conversations (listing_id + sender_id)
+    const conversations = new Map<string, { listing_id: number; sender_id: string }>();
+    receivedMessages.forEach(msg => {
+      const key = `${msg.listing_id}-${msg.sender_id}`;
+      if (!conversations.has(key)) {
+        conversations.set(key, { listing_id: msg.listing_id, sender_id: msg.sender_id });
+      }
+    });
+
+    // Check each conversation for replies
+    let repliedCount = 0;
+    for (const conversation of conversations.values()) {
+      const { data: replies } = await supabase
+        .from('messages')
+        .select('message_id')
+        .eq('sender_id', userId)
+        .eq('receiver_id', conversation.sender_id)
+        .eq('listing_id', conversation.listing_id)
+        .limit(1);
+
+      if (replies && replies.length > 0) {
+        repliedCount++;
+      }
+    }
+
+    const responseRate = Math.round((repliedCount / conversations.size) * 100);
+
+    return { data: responseRate, error: null };
+  } catch (error) {
+    console.error('Error calculating response rate:', error);
+    return { data: null, error };
+  }
+}

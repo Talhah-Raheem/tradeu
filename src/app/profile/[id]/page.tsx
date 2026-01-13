@@ -18,7 +18,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
   const { user: currentUser } = useAuth();
   const [activeTab, setActiveTab] = useState<'active' | 'sold'>('active');
   const [profileUser, setProfileUser] = useState<UserType | null>(null);
-  const [stats, setStats] = useState({ activeListings: 0, itemsSold: 0, responseRate: 95 });
+  const [stats, setStats] = useState<{ activeListings: number; itemsSold: number; responseRate: number | null }>({ activeListings: 0, itemsSold: 0, responseRate: null });
   const [listings, setListings] = useState<Listing[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [ordersLoading, setOrdersLoading] = useState(true);
@@ -203,7 +203,7 @@ export default function ProfilePage({ params }: { params: Promise<{ id: string }
               <div className="flex items-center space-x-2 mb-6">
                 <MessageCircle className="h-5 w-5 text-purple-600" />
                 <span className="text-gray-700 font-medium">
-                  {user.stats.responseRate}% Response Rate
+                  {user.stats.responseRate !== null ? `${user.stats.responseRate}%` : 'N/A'} Response Rate
                 </span>
               </div>
 
