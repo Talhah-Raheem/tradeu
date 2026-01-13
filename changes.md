@@ -61,6 +61,30 @@
 
 ---
 
+#### 4. Unhardcoded Response Rate
+**Problem:** All users showed 95% response rate regardless of actual message behavior.
+
+**Solution:**
+- Added `calculateResponseRate()` function in messages.ts
+- Calculates: (conversations replied to / total conversations received) × 100
+- Groups incoming messages by unique conversation (listing_id + sender_id)
+- Checks each conversation for at least one reply from user
+- Returns null for users with no incoming messages (displays as "N/A")
+- Simple conversation-level calculation, no time window filtering
+
+**Files Modified:**
+- `src/lib/api/messages.ts`
+  - Added `calculateResponseRate()` function (lines 178-226)
+  - Queries received messages, groups by conversation, checks for replies
+- `src/lib/api/users.ts`
+  - Import `calculateResponseRate` from messages (line 4)
+  - Call function in `getUserStats()` instead of hardcoded 95 (lines 29-33, 39)
+- `src/app/profile/[id]/page.tsx`
+  - Updated stats state to allow null response rate (line 21)
+  - Display "N/A" when response rate is null (line 206)
+
+---
+
 ## Testing Checklist (Requires Supabase Running)
 
 ### Signup Flow
@@ -144,26 +168,7 @@
 
 ---
 
-### 3. Fix Hardcoded Response Rate
-**Current State:** All users show 95% response rate
-
-**What's Broken:**
-- `src/lib/api/users.ts` (line 37) - Hardcoded 95
-- `src/app/profile/[id]/page.tsx` (line 21) - Hardcoded fallback
-
-**What Needs to Be Done:**
-- Implement actual calculation based on message data
-- Calculate: (messages responded to / messages received) × 100
-- Consider time window (e.g., within 24 hours)
-- Handle edge cases (new users with no messages)
-
-**Files to Modify:**
-- `src/lib/api/users.ts` - Implement response rate calculation
-- Potentially `src/lib/api/messages.ts` - Helper for response metrics
-
----
-
-### 4. Error Handling Improvements
+### 3. Error Handling Improvements
 **Current State:** Several pages fail silently
 
 **What's Broken:**
@@ -185,7 +190,7 @@
 
 ---
 
-### 5. Image Upload Error Feedback
+### 4. Image Upload Error Feedback
 **Current State:** Image uploads fail silently
 
 **What's Broken:**
@@ -205,7 +210,7 @@
 
 ---
 
-### 6. Performance - N+1 Query Fix
+### 5. Performance - N+1 Query Fix
 **Current State:** Loading seller listings makes N+1 database queries
 
 **What's Broken:**
@@ -228,13 +233,16 @@
 |------|---------------|--------|
 | `src/app/signup/page.tsx` | ~30 lines | ✅ Complete |
 | `src/app/reset-password/page.tsx` | 253 lines (new) | ✅ Complete |
-| `src/lib/api/users.ts` | ~18 lines | ✅ Complete |
+| `src/lib/api/users.ts` | ~18 lines (password reset) | ✅ Complete |
+| `src/lib/api/messages.ts` | 49 lines (response rate) | ✅ Complete |
+| `src/lib/api/users.ts` | ~5 lines (response rate) | ✅ Complete |
+| `src/app/profile/[id]/page.tsx` | ~3 lines (response rate) | ✅ Complete |
 
 ### Files Requiring Changes Next
 | File | Priority | Issue |
 |------|----------|-------|
-| `src/app/profile/[id]/page.tsx` | 🔴 High | Hardcoded reviews, ratings, response rate |
-| `src/lib/api/users.ts` | 🔴 High | Need review functions, rating calc, response rate |
+| `src/app/profile/[id]/page.tsx` | 🔴 High | Hardcoded reviews and ratings |
+| `src/lib/api/users.ts` | 🔴 High | Need review functions and rating calc |
 | `src/app/listings/[id]/page.tsx` | 🔴 High | Hardcoded seller rating |
 | `src/app/orders/page.tsx` | 🟡 Medium | Missing error handling |
 | `src/app/messages/page.tsx` | 🟡 Medium | No subscription error recovery |
