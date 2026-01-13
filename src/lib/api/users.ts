@@ -1,6 +1,7 @@
 import { supabase } from '@/lib/supabase';
 import { User } from '@/types/database';
 import { getListingsBySeller } from './listings';
+import { calculateResponseRate } from './messages';
 
 // Get user profile by ID
 export async function getUserProfile(userId: string) {
@@ -25,16 +26,17 @@ export async function getUserStats(userId: string) {
   try {
     // Use getListingsBySeller which checks orders table for accurate counts
     // This ensures consistency with what's actually displayed in the tabs
-    const [activeResult, soldResult] = await Promise.all([
+    const [activeResult, soldResult, responseRateResult] = await Promise.all([
       getListingsBySeller(userId, 'active'),
       getListingsBySeller(userId, 'sold'),
+      calculateResponseRate(userId),
     ]);
 
     return {
       data: {
         activeListings: activeResult.data?.length || 0,
         itemsSold: soldResult.data?.length || 0,
-        responseRate: 95, // This would need to be calculated from messages
+        responseRate: responseRateResult.data ?? null,
       },
       error: null,
     };
